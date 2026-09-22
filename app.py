@@ -168,10 +168,16 @@ with tab3:
                 st.info("✅ วันนี้ตลาดยังสงบ ไม่มีหุ้นตัวไหนในพอร์ตสวิงแรงผิดปกติให้ต้องกังวลครับ")
                 
             st.markdown("---")
-            st.subheader("🗞️ พาดหัวข่าวล่าสุดจาก Yahoo Finance (Latest Headlines)")
-            st.caption("คลิกที่พาดหัวข่าวเพื่อเปิดอ่านรายละเอียดเต็ม (ภาษาอังกฤษ)")
+            st.subheader("🗞️ สแกนพาดหัวข่าวล่าสุด (News Sentiment Radar)")
+            st.caption("ระบบใช้ Keyword Analysis ตรวจจับคำศัพท์ในข่าวเพื่อประเมินความเสี่ยงและทิศทางเบื้องต้น คลิกที่พาดหัวเพื่ออ่านเต็ม (ภาษาอังกฤษ)")
+            
             if news_feed:
                 for item in news_feed:
-                    st.markdown(f"**[{item['Ticker']}]** [{item['Title']}]({item['Link']}) *(โดย {item['Publisher']})*")
+                    if item['Color'] == 'green':
+                        st.success(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
+                    elif item['Color'] == 'red':
+                        st.error(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
+                    else:
+                        st.info(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
             else:
                 st.write("ไม่มีข่าวสารอัปเดตในขณะนี้")

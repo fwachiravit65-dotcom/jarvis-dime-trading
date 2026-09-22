@@ -208,11 +208,41 @@ def get_daily_alerts_and_news(tickers):
             if news:
                 # Get top 2 news per stock
                 for item in news[:2]:
+                    content = item.get('content', {})
+                    if not content:
+                        continue
+                        
+                    title = content.get('title', 'No Title')
+                    summary = content.get('summary', '')
+                    publisher = content.get('provider', {}).get('displayName', 'Unknown')
+                    
+                    url_dict = content.get('clickThroughUrl') or content.get('canonicalUrl') or {}
+                    link = url_dict.get('url', '#')
+                    
+                    # Basic Sentiment Analysis (Keyword based)
+                    text_to_check = (title + " " + summary).lower()
+                    
+                    pos_words = ['jump', 'surge', 'boost', 'beat', 'raise', 'upgrade', 'buy', 'strong', 'gain', 'top', 'bull', 'rally', 'advantage']
+                    neg_words = ['drop', 'fall', 'miss', 'downgrade', 'sell', 'weak', 'risk', 'skid', 'threat', 'warn', 'dip', 'bear', 'challenge', 'lower']
+                    
+                    sentiment = "🔹 ข่าวทั่วไป (Neutral)"
+                    color = "blue"
+                    
+                    if any(w in text_to_check for w in pos_words) and not any(w in text_to_check for w in neg_words):
+                        sentiment = "📈 ข่าวเชิงบวก (อาจหนุนราคาขึ้น)"
+                        color = "green"
+                    elif any(w in text_to_check for w in neg_words):
+                        sentiment = "📉 ข่าวเชิงลบ / ความเสี่ยง (อาจกดดันราคา)"
+                        color = "red"
+                        
                     news_feed.append({
                         "Ticker": ticker,
-                        "Title": item.get('title', 'No Title'),
-                        "Publisher": item.get('publisher', 'Unknown'),
-                        "Link": item.get('link', '#')
+                        "Title": title,
+                        "Summary": summary[:150] + "..." if len(summary) > 150 else summary,
+                        "Publisher": publisher,
+                        "Link": link,
+                        "Sentiment": sentiment,
+                        "Color": color
                     })
         except Exception:
             pass
