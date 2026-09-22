@@ -8,7 +8,7 @@ from data_engine import get_stock_data, analyze_signals, generate_trading_plan, 
 st.set_page_config(page_title="Jarvis Trading Center", layout="wide", page_icon="🤖")
 st.title("🤖 Jarvis Command Center")
 
-watchlist = ["TSLA", "RGTI", "RKLB", "META", "SHOP", "JEPQ", "AMD", "TSM", "AMZN"]
+watchlist = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "RGTI", "RKLB", "SHOP", "JEPQ", "AMD", "TSM"]
 
 # --- Sidebar Configuration ---
 with st.sidebar:
