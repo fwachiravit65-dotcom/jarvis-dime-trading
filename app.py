@@ -65,9 +65,9 @@ with tab1:
             
         with col2:
             st.subheader("🏢 ข้อมูลปัจจุบัน (Current Status)")
-            if info:
-                current_price = info.get('currentPrice', 'N/A')
-                st.metric("Current Price", f"${current_price}")
+            # Use reliable Close price from DataFrame instead of flaky info dict
+            latest_close = df['Close'].iloc[-1]
+            st.metric("Current Price", f"${latest_close:.2f}")
                 
             st.subheader("🚦 สัญญาณทางเทคนิค")
             signals = analyze_signals(df)
