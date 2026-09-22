@@ -8,13 +8,13 @@ from data_engine import get_stock_data, analyze_signals, generate_trading_plan, 
 st.set_page_config(page_title="Jarvis Trading Center", layout="wide", page_icon="🤖")
 st.title("🤖 Jarvis Command Center")
 
-mag7 = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"]
+watchlist = ["TSLA", "RGTI", "RKLB", "META", "SHOP", "JEPQ", "AMD", "TSM", "AMZN"]
 
 # --- Sidebar Configuration ---
 with st.sidebar:
     st.header("📊 ตั้งค่าข้อมูล")
-    selected_ticker = st.selectbox("เลือกหุ้นเพื่อเจาะลึก (Single Stock):", mag7)
-    custom_ticker = st.text_input("หรือพิมพ์ชื่อหุ้นตัวอื่น (e.g. AMD):").upper()
+    selected_ticker = st.selectbox("เลือกหุ้นเพื่อเจาะลึก (Single Stock):", watchlist)
+    custom_ticker = st.text_input("หรือพิมพ์ชื่อหุ้นตัวอื่น (e.g. AAPL):").upper()
     if custom_ticker:
         selected_ticker = custom_ticker
         
@@ -123,13 +123,13 @@ with tab1:
 # --- TAB 2: Money Management & Screener ---
 with tab2:
     st.header("💼 ระบบจัดสรรเงินทุน (Money Management & Stock Screener)")
-    st.markdown("ระบบจะสแกนกราฟของหุ้นทั้ง 7 นางฟ้าพร้อมกัน เพื่อหาตัวที่กำลัง **ย่อตัวเสร็จแล้ว** หรือ **แนวโน้มแข็งแกร่งที่สุด** และแบ่งเงินลงทุนให้เหมาะสม")
+    st.markdown("ระบบจะสแกนกราฟของหุ้นใน Watchlist ทั้งหมดพร้อมกัน เพื่อหาตัวที่กำลัง **ย่อตัวเสร็จแล้ว** หรือ **แนวโน้มแข็งแกร่งที่สุด** และแบ่งเงินลงทุนให้เหมาะสม")
     
     invest_amount = st.number_input("ใส่จำนวนเงินที่คุณต้องการเติมเข้าพอร์ตรอบนี้ (USD):", min_value=1.0, value=100.0, step=10.0)
     
     if st.button("🚀 สแกนตลาดและจัดสรรเงิน", type="primary"):
-        with st.spinner("กำลังสแกนข้อมูล 7 นางฟ้า... อาจใช้เวลาสักครู่"):
-            screener_df = screen_all_stocks(mag7, period)
+        with st.spinner("กำลังสแกนข้อมูล Watchlist... อาจใช้เวลาสักครู่"):
+            screener_df = screen_all_stocks(watchlist, period)
             
             st.subheader("📊 สถานะหุ้นทั้งหมดตอนนี้")
             st.dataframe(screener_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)

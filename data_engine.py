@@ -177,7 +177,7 @@ def allocate_funds(screener_df, amount):
     buy_candidates = screener_df[screener_df['Score'] >= 2].sort_values(by='Score', ascending=False)
     
     if buy_candidates.empty:
-        return "⚠️ หุ้น 7 นางฟ้าตอนนี้ไม่มีตัวไหนอยู่ในจุดเข้าซื้อที่ปลอดภัย (แพงไปหรือเป็นขาลง) แนะนำให้ถือเงินสด (Hold Cash) รอจังหวะย่อตัวครับ", pd.DataFrame()
+        return "⚠️ หุ้นใน Watchlist ตอนนี้ไม่มีตัวไหนอยู่ในจุดเข้าซื้อที่ปลอดภัย (แพงไปหรือเป็นขาลง) แนะนำให้ถือเงินสด (Hold Cash) รอจังหวะย่อตัวครับ", pd.DataFrame()
         
     # Pick top 3 candidates max
     top_picks = buy_candidates.head(3)
