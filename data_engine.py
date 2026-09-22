@@ -148,13 +148,17 @@ def screen_all_stocks(tickers, period="1y"):
         if current_price > sma200:
             if rsi < 45: 
                 status = "🟢 ย่อตัวน่าเก็บ (Buy the Dip)"
-                score = 3
+                score = 10 # คะแนนเต็ม น่าเก็บที่สุด
             elif rsi > 70:
                 status = "🔴 ขึ้นแรงไป (Overbought)"
-                score = -1
+                score = 0
             elif current_price > sma50:
                 status = "🟢 แนวโน้มแกร่ง (Strong Momentum)"
-                score = 2
+                # ยิ่ง RSI ต่ำ (ห่างจาก 70) ยิ่งมีพื้นที่ให้วิ่งเยอะ = คะแนนเยอะ (ช่วงคะแนนประมาณ 5-9)
+                score = 5 + ((70 - rsi) / 10) 
+            else:
+                status = "🟡 พักตัวในขาขึ้น (Wait & See)"
+                score = 3
         else:
             if rsi < 30:
                 status = "🟡 ลงลึก (Oversold - เสี่ยงสวนเทรนด์)"
@@ -174,16 +178,18 @@ def screen_all_stocks(tickers, period="1y"):
 
 def allocate_funds(screener_df, amount):
     """Allocate funds based on screener scores."""
-    buy_candidates = screener_df[screener_df['Score'] >= 2].sort_values(by='Score', ascending=False)
+    # เลือกเฉพาะตัวที่คะแนน >= 5 (แนวโน้มแกร่ง หรือ น่าเก็บ)
+    buy_candidates = screener_df[screener_df['Score'] >= 5].sort_values(by='Score', ascending=False)
     
     if buy_candidates.empty:
         return "⚠️ หุ้นใน Watchlist ตอนนี้ไม่มีตัวไหนอยู่ในจุดเข้าซื้อที่ปลอดภัย (แพงไปหรือเป็นขาลง) แนะนำให้ถือเงินสด (Hold Cash) รอจังหวะย่อตัวครับ", pd.DataFrame()
         
-    # Pick top 3 candidates max
-    top_picks = buy_candidates.head(3)
-    num_picks = len(top_picks)
-    alloc_per_stock = amount / num_picks
+    # ปลดล็อคจาก 3 ตัว เป็นสูงสุด 5 ตัว เพื่อกระจายความเสี่ยงให้ครอบคลุม
+    top_picks = buy_candidates.head(5).copy()
     
-    allocation = top_picks.copy()
-    allocation['Allocation ($)'] = alloc_per_stock
-    return f"✅ ระบบพบหุ้นที่น่าเก็บ {num_picks} ตัว แนะนำให้กระจายเงินเข้าซื้อตัวละเท่าๆ กันดังนี้ครับ:", allocation
+    # คำนวณสัดส่วนเงินตามความแข็งแกร่ง (Weighted Allocation)
+    total_score = top_picks['Score'].sum()
+    top_picks['Allocation ($)'] = (top_picks['Score'] / total_score) * amount
+    
+    num_picks = len(top_picks)
+    return f"✅ ระบบพบหุ้นแข็งแกร่ง {num_picks} ตัว (ยิ่งกราฟสวย/ย่อตัวน่าเก็บ จะยิ่งได้รับการแบ่งเงินทุนสัดส่วนมากขึ้น):", top_picks
