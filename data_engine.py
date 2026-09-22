@@ -195,19 +195,51 @@ def allocate_funds(screener_df, amount):
     return f"✅ ระบบพบหุ้นแข็งแกร่ง {num_picks} ตัว (ยิ่งกราฟสวย/ย่อตัวน่าเก็บ จะยิ่งได้รับการแบ่งเงินทุนสัดส่วนมากขึ้น):", top_picks
 
 def get_daily_alerts_and_news(tickers):
-    """Fetch volatility alerts and news for all watchlist stocks."""
+    """Fetch volatility alerts and news, filtering news to match actual price momentum."""
     alerts = []
     news_feed = []
     
     for ticker in tickers:
         stock = yf.Ticker(ticker)
+        momentum_dir = 0 # 1=UP, -1=DOWN, 0=FLAT
         
-        # 1. Fetch News
+        # 1. Calculate Volatility & Momentum Alert
+        try:
+            df = stock.history(period="3mo")
+            if not df.empty and len(df) > 20:
+                atr_obj = ta.volatility.AverageTrueRange(high=df['High'], low=df['Low'], close=df['Close'], window=14)
+                df['ATR'] = atr_obj.average_true_range()
+                
+                macd = ta.trend.MACD(df['Close'])
+                macd_hist = macd.macd_diff().iloc[-1]
+                
+                today_range = df['High'].iloc[-1] - df['Low'].iloc[-1]
+                avg_atr = df['ATR'].iloc[-2]
+                
+                if pd.notna(avg_atr) and avg_atr > 0:
+                    if today_range > 1.5 * avg_atr:
+                        if df['Close'].iloc[-1] > df['Open'].iloc[-1]:
+                            alerts.append({"Ticker": ticker, "Alert": "🔥 สวิงขึ้นรุนแรง (Bullish Volatility)", "Details": "ราคาแกว่งตัวกว้างกว่าปกติ มีแรงซื้อหนาแน่น โอกาสทะลุแนวต้านสูง"})
+                            momentum_dir = 1
+                        else:
+                            alerts.append({"Ticker": ticker, "Alert": "⚠️ สวิงลงรุนแรง (Bearish Volatility)", "Details": "โดนเทขายหนักกว่าปกติ ทิศทางอันตราย ระวังหลุดแนวรับ"})
+                            momentum_dir = -1
+                    elif abs(macd_hist) > (df['Close'].iloc[-1] * 0.01): 
+                         if macd_hist > 0:
+                             alerts.append({"Ticker": ticker, "Alert": "🚀 โมเมนตัมบวกพุ่ง (Strong Upward Momentum)", "Details": "แรงซื้ออัดแน่นระยะสั้น กราฟสวย มีโอกาสพุ่งไปต่อ"})
+                             momentum_dir = 1
+                         else:
+                             alerts.append({"Ticker": ticker, "Alert": "📉 โมเมนตัมลบกดดัน (Strong Downward Momentum)", "Details": "แรงขายหนาแน่นระยะสั้น ระวังราคาร่วงต่อเนื่อง ไม่ควรรีบรับ"})
+                             momentum_dir = -1
+        except Exception:
+            pass
+
+        # 2. Fetch News and Filter out contradictions
         try:
             news = stock.news
             if news:
-                # Get top 2 news per stock
-                for item in news[:2]:
+                best_news = None
+                for item in news:
                     content = item.get('content', {})
                     if not content:
                         continue
@@ -215,65 +247,45 @@ def get_daily_alerts_and_news(tickers):
                     title = content.get('title', 'No Title')
                     summary = content.get('summary', '')
                     publisher = content.get('provider', {}).get('displayName', 'Unknown')
+                    link = (content.get('clickThroughUrl') or content.get('canonicalUrl') or {}).get('url', '#')
                     
-                    url_dict = content.get('clickThroughUrl') or content.get('canonicalUrl') or {}
-                    link = url_dict.get('url', '#')
-                    
-                    # Basic Sentiment Analysis (Keyword based)
                     text_to_check = (title + " " + summary).lower()
                     
-                    pos_words = ['jump', 'surge', 'boost', 'beat', 'raise', 'upgrade', 'buy', 'strong', 'gain', 'top', 'bull', 'rally', 'advantage']
-                    neg_words = ['drop', 'fall', 'miss', 'downgrade', 'sell', 'weak', 'risk', 'skid', 'threat', 'warn', 'dip', 'bear', 'challenge', 'lower']
+                    pos_words = ['jump', 'surge', 'boost', 'beat', 'raise', 'upgrade', 'buy', 'strong', 'gain', 'top', 'bull', 'rally', 'advantage', 'lead']
+                    neg_words = ['drop', 'fall', 'miss', 'downgrade', 'sell', 'weak', 'risk', 'skid', 'threat', 'warn', 'dip', 'bear', 'challenge', 'lower', 'fear']
                     
-                    sentiment = "🔹 ข่าวทั่วไป (Neutral)"
-                    color = "blue"
-                    
-                    if any(w in text_to_check for w in pos_words) and not any(w in text_to_check for w in neg_words):
-                        sentiment = "📈 ข่าวเชิงบวก (อาจหนุนราคาขึ้น)"
-                        color = "green"
+                    sentiment = "neutral"
+                    # ป้องกันการแปลผิด เช่น 'sell-off is overdone' (แปลว่าลงมากไปแล้ว กำลังจะขึ้น)
+                    if any(w in text_to_check for w in pos_words) or ("overdone" in text_to_check and "sell" in text_to_check):
+                        sentiment = "positive"
                     elif any(w in text_to_check for w in neg_words):
-                        sentiment = "📉 ข่าวเชิงลบ / ความเสี่ยง (อาจกดดันราคา)"
-                        color = "red"
+                        sentiment = "negative"
                         
-                    news_feed.append({
-                        "Ticker": ticker,
-                        "Title": title,
-                        "Summary": summary[:150] + "..." if len(summary) > 150 else summary,
-                        "Publisher": publisher,
-                        "Link": link,
-                        "Sentiment": sentiment,
-                        "Color": color
-                    })
-        except Exception:
-            pass
-            
-        # 2. Calculate Volatility Alert
-        try:
-            df = stock.history(period="3mo")
-            if not df.empty and len(df) > 20:
-                # Calculate ATR
-                atr_obj = ta.volatility.AverageTrueRange(high=df['High'], low=df['Low'], close=df['Close'], window=14)
-                df['ATR'] = atr_obj.average_true_range()
-                
-                # Check momentum (MACD)
-                macd = ta.trend.MACD(df['Close'])
-                macd_hist = macd.macd_diff().iloc[-1]
-                
-                # Volatility check: If today's candle range (High - Low) is > 1.5 * ATR
-                today_range = df['High'].iloc[-1] - df['Low'].iloc[-1]
-                avg_atr = df['ATR'].iloc[-2] # yesterday's ATR
-                
-                if pd.notna(avg_atr) and avg_atr > 0:
-                    if today_range > 1.5 * avg_atr:
-                        if df['Close'].iloc[-1] > df['Open'].iloc[-1]:
-                            alerts.append({"Ticker": ticker, "Alert": "🔥 สวิงขึ้นรุนแรง (Bullish Volatility)", "Details": "ราคาแกว่งตัวกว้างกว่าปกติ โอกาสทะลุแนวต้านสูง ควรหาจังหวะล็อกกำไรหรือเติมไม้ตาม"})
-                        else:
-                            alerts.append({"Ticker": ticker, "Alert": "⚠️ สวิงลงรุนแรง (Bearish Volatility)", "Details": "โดนเทขายหนักกว่าปกติ ระวังหลุดแนวรับ เตรียมจุดหนีตาย"})
-                    elif abs(macd_hist) > (df['Close'].iloc[-1] * 0.01): # Arbitrary large momentum
-                         if macd_hist > 0:
-                             alerts.append({"Ticker": ticker, "Alert": "🚀 โมเมนตัมบวกพุ่ง (Strong Upward Momentum)", "Details": "แรงซื้ออัดแน่นระยะสั้น มีโอกาสพุ่งไปต่อ"})
-                         else:
-                             alerts.append({"Ticker": ticker, "Alert": "📉 โมเมนตัมลบกดดัน (Strong Downward Momentum)", "Details": "แรงขายหนาแน่นระยะสั้น ระวังราคาร่วงต่อเนื่องไม่ควรรีบรับ"})
+                    # ไส้กรองเวทมนตร์ (Magic Filter): เอาเฉพาะข่าวที่ "สอดคล้องกับกราฟจริง" หรือเป็นข่าวใหญ่จริงๆ
+                    is_match = False
+                    
+                    if momentum_dir == 1 and sentiment == "positive":
+                        is_match = True # กราฟพุ่ง + ข่าวดี = ของแท้
+                    elif momentum_dir == -1 and sentiment == "negative":
+                        is_match = True # กราฟร่วง + ข่าวร้าย = ของแท้
+                    elif momentum_dir == 0 and sentiment != "neutral":
+                        is_match = True # กราฟนิ่งๆ แต่มีข่าวใหญ่ (แง่บวก/ลบ) = น่าติดตาม
+                        
+                    if is_match:
+                        # ได้ข่าวเด็ดที่ตรงกับกราฟแล้ว! เก็บข่าวนี้ข่าวเดียวพอ เพื่อไม่ให้รก
+                        best_news = {
+                            "Ticker": ticker,
+                            "Title": title,
+                            "Summary": summary[:150] + "..." if len(summary) > 150 else summary,
+                            "Publisher": publisher,
+                            "Link": link,
+                            "Sentiment": "🌟 ข่าวดีดันราคา (Bullish Catalyst)" if sentiment == "positive" else "🚨 ข่าวร้ายกดดัน (Bearish Catalyst)",
+                            "Color": "green" if sentiment == "positive" else "red"
+                        }
+                        break # เจอข่าวเด็ด 1 อันแล้ว ข้ามไปทำหุ้นตัวต่อไปเลย
+                        
+                if best_news:
+                    news_feed.append(best_news)
         except Exception:
             pass
 
