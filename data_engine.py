@@ -193,3 +193,58 @@ def allocate_funds(screener_df, amount):
     
     num_picks = len(top_picks)
     return f"✅ ระบบพบหุ้นแข็งแกร่ง {num_picks} ตัว (ยิ่งกราฟสวย/ย่อตัวน่าเก็บ จะยิ่งได้รับการแบ่งเงินทุนสัดส่วนมากขึ้น):", top_picks
+
+def get_daily_alerts_and_news(tickers):
+    """Fetch volatility alerts and news for all watchlist stocks."""
+    alerts = []
+    news_feed = []
+    
+    for ticker in tickers:
+        stock = yf.Ticker(ticker)
+        
+        # 1. Fetch News
+        try:
+            news = stock.news
+            if news:
+                # Get top 2 news per stock
+                for item in news[:2]:
+                    news_feed.append({
+                        "Ticker": ticker,
+                        "Title": item.get('title', 'No Title'),
+                        "Publisher": item.get('publisher', 'Unknown'),
+                        "Link": item.get('link', '#')
+                    })
+        except Exception:
+            pass
+            
+        # 2. Calculate Volatility Alert
+        try:
+            df = stock.history(period="3mo")
+            if not df.empty and len(df) > 20:
+                # Calculate ATR
+                atr_obj = ta.volatility.AverageTrueRange(high=df['High'], low=df['Low'], close=df['Close'], window=14)
+                df['ATR'] = atr_obj.average_true_range()
+                
+                # Check momentum (MACD)
+                macd = ta.trend.MACD(df['Close'])
+                macd_hist = macd.macd_diff().iloc[-1]
+                
+                # Volatility check: If today's candle range (High - Low) is > 1.5 * ATR
+                today_range = df['High'].iloc[-1] - df['Low'].iloc[-1]
+                avg_atr = df['ATR'].iloc[-2] # yesterday's ATR
+                
+                if pd.notna(avg_atr) and avg_atr > 0:
+                    if today_range > 1.5 * avg_atr:
+                        if df['Close'].iloc[-1] > df['Open'].iloc[-1]:
+                            alerts.append({"Ticker": ticker, "Alert": "🔥 สวิงขึ้นรุนแรง (Bullish Volatility)", "Details": "ราคาแกว่งตัวกว้างกว่าปกติ โอกาสทะลุแนวต้านสูง ควรหาจังหวะล็อกกำไรหรือเติมไม้ตาม"})
+                        else:
+                            alerts.append({"Ticker": ticker, "Alert": "⚠️ สวิงลงรุนแรง (Bearish Volatility)", "Details": "โดนเทขายหนักกว่าปกติ ระวังหลุดแนวรับ เตรียมจุดหนีตาย"})
+                    elif abs(macd_hist) > (df['Close'].iloc[-1] * 0.01): # Arbitrary large momentum
+                         if macd_hist > 0:
+                             alerts.append({"Ticker": ticker, "Alert": "🚀 โมเมนตัมบวกพุ่ง (Strong Upward Momentum)", "Details": "แรงซื้ออัดแน่นระยะสั้น มีโอกาสพุ่งไปต่อ"})
+                         else:
+                             alerts.append({"Ticker": ticker, "Alert": "📉 โมเมนตัมลบกดดัน (Strong Downward Momentum)", "Details": "แรงขายหนาแน่นระยะสั้น ระวังราคาร่วงต่อเนื่องไม่ควรรีบรับ"})
+        except Exception:
+            pass
+
+    return alerts, news_feed

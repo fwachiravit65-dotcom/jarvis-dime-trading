@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 import pandas as pd
-from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds
+from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news
 
 st.set_page_config(page_title="Jarvis Trading Center", layout="wide", page_icon="🤖")
 st.title("🤖 Jarvis Command Center")
@@ -14,7 +14,7 @@ watchlist = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "RGTI", "R
 with st.sidebar:
     st.header("📊 ตั้งค่าข้อมูล")
     selected_ticker = st.selectbox("เลือกหุ้นเพื่อเจาะลึก (Single Stock):", watchlist)
-    custom_ticker = st.text_input("หรือพิมพ์ชื่อหุ้นตัวอื่น (e.g. AAPL):").upper()
+    custom_ticker = st.text_input("หรือพิมพ์ชื่อหุ้นตัวอื่น (e.g. NFLX):").upper()
     if custom_ticker:
         selected_ticker = custom_ticker
         
@@ -23,7 +23,7 @@ with st.sidebar:
         st.cache_data.clear()
 
 # Create Tabs
-tab1, tab2 = st.tabs(["🔍 เจาะลึกรายตัว (Single Stock)", "💼 จัดพอร์ต & สแกนหุ้น (Money Management)"])
+tab1, tab2, tab3 = st.tabs(["🔍 เจาะลึกรายตัว (Single Stock)", "💼 จัดพอร์ต & สแกนหุ้น (Money Management)", "📰 ข่าวสาร & เรดาร์ความผันผวน (Daily News)"])
 
 @st.cache_data(ttl=3600)
 def load_data(ticker, period):
@@ -146,3 +146,32 @@ with tab2:
                 with a_col2:
                     fig_pie = px.pie(alloc_df, values='Allocation ($)', names='Ticker', title="สัดส่วนการกระจายเงิน")
                     st.plotly_chart(fig_pie, use_container_width=True)
+
+# --- TAB 3: Daily News & Alerts ---
+with tab3:
+    st.header("📰 ข่าวสาร & เรดาร์จับการสวิง (Daily News & Alerts)")
+    st.markdown("หน้านี้จะอัปเดตความเคลื่อนไหวรายวัน ว่ามีหุ้นตัวไหนสวิงแรงผิดปกติ และแสดงพาดหัวข่าวล่าสุดให้คุณติดตามครับ")
+    
+    if st.button("📡 ตรวจสอบเรดาร์ตลาดวันนี้ (Refresh Radar)", type="primary", use_container_width=True):
+        with st.spinner("กำลังกวาดสัญญาณความผันผวนและพาดหัวข่าวจากตลาดโลก (อาจใช้เวลา 1-2 นาที)..."):
+            alerts, news_feed = get_daily_alerts_and_news(watchlist)
+            
+            st.subheader("🚨 เรดาร์จับความผันผวน (Volatility Alerts)")
+            st.caption("ระบบคำนวณจากระยะการแกว่งตัว (ATR) และโมเมนตัม (MACD) ของวันนี้เทียบกับค่าเฉลี่ยในอดีต")
+            if alerts:
+                for alert in alerts:
+                    if "สวิงลง" in alert['Alert'] or "ลบกดดัน" in alert['Alert']:
+                        st.error(f"**[{alert['Ticker']}]** {alert['Alert']} - {alert['Details']}")
+                    else:
+                        st.success(f"**[{alert['Ticker']}]** {alert['Alert']} - {alert['Details']}")
+            else:
+                st.info("✅ วันนี้ตลาดยังสงบ ไม่มีหุ้นตัวไหนในพอร์ตสวิงแรงผิดปกติให้ต้องกังวลครับ")
+                
+            st.markdown("---")
+            st.subheader("🗞️ พาดหัวข่าวล่าสุดจาก Yahoo Finance (Latest Headlines)")
+            st.caption("คลิกที่พาดหัวข่าวเพื่อเปิดอ่านรายละเอียดเต็ม (ภาษาอังกฤษ)")
+            if news_feed:
+                for item in news_feed:
+                    st.markdown(f"**[{item['Ticker']}]** [{item['Title']}]({item['Link']}) *(โดย {item['Publisher']})*")
+            else:
+                st.write("ไม่มีข่าวสารอัปเดตในขณะนี้")
