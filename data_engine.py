@@ -11,6 +11,12 @@ def get_stock_data(ticker, period="1y"):
         if df.empty:
             return None, None
             
+        # ลบแถวที่ราคา Close เป็น NaN (มักเกิดจากบั๊กของ Yahoo ช่วงก่อนตลาดเปิด)
+        df = df.dropna(subset=['Close'])
+        
+        if df.empty:
+            return None, None
+            
         if df.index.tz is not None:
             df.index = df.index.tz_localize(None)
 
