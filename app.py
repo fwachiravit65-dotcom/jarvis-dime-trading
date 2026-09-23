@@ -353,12 +353,13 @@ with tab2:
     col1, col2 = st.columns([1, 3])
     with col1:
         invest_amount = st.number_input("💵 เงินทุนเตรียมเข้าซื้อ (USD):", min_value=1.0, value=100.0, step=10.0)
+        max_picks = st.slider("🔢 จัดสรรเงินให้หุ้นกี่ตัว (Max Picks):", min_value=1, max_value=len(watchlist), value=5)
         scan_btn = st.button("🚀 สแกนตลาด")
         
     if scan_btn:
         with st.spinner("กำลังสแกนหุ้นทุกตัว..."):
             screener_df = screen_all_stocks(watchlist, period)
-            msg, alloc_df = allocate_funds(screener_df, invest_amount)
+            msg, alloc_df = allocate_funds(screener_df, invest_amount, max_picks)
             
             st.success(msg)
             

@@ -182,7 +182,7 @@ def screen_all_stocks(tickers, period="1y"):
         })
     return pd.DataFrame(results)
 
-def allocate_funds(screener_df, amount):
+def allocate_funds(screener_df, amount, max_picks=5):
     """Allocate funds based on screener scores."""
     # เลือกเฉพาะตัวที่คะแนน >= 5 (แนวโน้มแกร่ง หรือ น่าเก็บ)
     buy_candidates = screener_df[screener_df['Score'] >= 5].sort_values(by='Score', ascending=False)
@@ -191,7 +191,7 @@ def allocate_funds(screener_df, amount):
         return "⚠️ หุ้นใน Watchlist ตอนนี้ไม่มีตัวไหนอยู่ในจุดเข้าซื้อที่ปลอดภัย (แพงไปหรือเป็นขาลง) แนะนำให้ถือเงินสด (Hold Cash) รอจังหวะย่อตัวครับ", pd.DataFrame()
         
     # ปลดล็อคจาก 3 ตัว เป็นสูงสุด 5 ตัว เพื่อกระจายความเสี่ยงให้ครอบคลุม
-    top_picks = buy_candidates.head(5).copy()
+    top_picks = buy_candidates.head(max_picks).copy()
     
     # คำนวณสัดส่วนเงินตามความแข็งแกร่ง (Weighted Allocation)
     total_score = top_picks['Score'].sum()
