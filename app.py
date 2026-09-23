@@ -11,8 +11,8 @@ custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
-/* Apply modern font to everything */
-html, body, [class*="css"]  {
+/* Apply modern font to ALL elements */
+* {
     font-family: 'Prompt', sans-serif !important;
 }
 
