@@ -11,8 +11,8 @@ def get_stock_data(ticker, period="1y"):
         if df.empty:
             return None, None
             
-        # ลบแถวที่ราคา Close เป็น NaN (มักเกิดจากบั๊กของ Yahoo ช่วงก่อนตลาดเปิด)
-        df = df.dropna(subset=['Close'])
+        # ลบแถวที่ราคา OHLCV เป็น NaN ให้หมด (กันเหนียว)
+        df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'])
         
         if df.empty:
             return None, None
