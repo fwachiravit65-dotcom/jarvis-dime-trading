@@ -111,6 +111,36 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+
+/* 📱 Mobile Responsiveness */
+@media (max-width: 768px) {
+    .block-container {
+        padding-top: 2rem !important;
+        max-width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    /* ย่อขนาดตัวอักษรลงในมือถือ */
+    [data-testid="stMetricValue"] {
+        font-size: 24px !important;
+    }
+    h1 {
+        font-size: 26px !important;
+    }
+    
+    /* ทำให้แท็บเลื่อนซ้ายขวาได้ ไม่เบียดกัน */
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 5px;
+        gap: 5px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -187,7 +217,7 @@ with tab1:
             yaxis_title='Price (USD)',
             template='plotly_dark',
             xaxis_rangeslider_visible=False,
-            height=550,
+            height=450,
             margin=dict(l=0, r=0, t=50, b=0),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
