@@ -6,6 +6,66 @@ import pandas as pd
 from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news
 
 st.set_page_config(page_title="Jarvis Trading Center", layout="wide", page_icon="🤖")
+
+custom_css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+/* Apply modern font to everything */
+html, body, [class*="css"]  {
+    font-family: 'Prompt', sans-serif !important;
+}
+
+/* Hide default Streamlit watermarks for a cleaner app feel */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {background-color: transparent !important;}
+
+/* Modern Button Styling */
+.stButton > button {
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    font-weight: 500 !important;
+    border: none !important;
+}
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(255, 75, 75, 0.4) !important;
+}
+
+/* Modern Metric Cards (จุดซื้อ จุดขาย) */
+[data-testid="stMetric"] {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+[data-testid="stMetric"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Beautiful Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0px 0px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* Adjust sidebar */
+[data-testid="stSidebar"] {
+    background-color: rgba(15, 17, 22, 0.95);
+}
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
 st.title("🤖 Jarvis Command Center")
 
 watchlist = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "RGTI", "RKLB", "SHOP", "JEPQ", "AMD", "TSM"]
