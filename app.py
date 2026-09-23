@@ -162,9 +162,11 @@ with tab1:
         with col1:
             st.metric("💰 ราคาปัจจุบัน (Price)", f"${latest_close:.2f}")
         with col2:
-            st.metric("🎯 เป้าขาย (Resistance)", f"${signals['Resistance']:.2f}" if pd.notna(signals['Resistance']) else "N/A")
+            res_val = df['Resistance'].iloc[-1]
+            st.metric("🎯 เป้าขาย (Resistance)", f"${res_val:.2f}" if pd.notna(res_val) else "N/A")
         with col3:
-            st.metric("🛑 จุดตัดขาดทุน (Cut Loss)", f"${signals['Support']:.2f}" if pd.notna(signals['Support']) else "N/A")
+            sup_val = df['Support'].iloc[-1]
+            st.metric("🛑 จุดตัดขาดทุน (Cut Loss)", f"${sup_val:.2f}" if pd.notna(sup_val) else "N/A")
         with col4:
             rsi_val = df['RSI'].iloc[-1]
             st.metric("🔥 โมเมนตัม (RSI)", f"{rsi_val:.1f}" if pd.notna(rsi_val) else "N/A")
