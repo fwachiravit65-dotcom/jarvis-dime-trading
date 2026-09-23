@@ -6,7 +6,7 @@ from datetime import timedelta
 import yfinance as yf
 from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news, check_emergency_alerts
 
-st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡", initial_sidebar_state="expanded")
 
 # ... (CSS stays the same, I'll search for the header to insert the banner)
 
