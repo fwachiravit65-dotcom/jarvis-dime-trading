@@ -296,3 +296,44 @@ def get_daily_alerts_and_news(tickers):
             pass
 
     return alerts, news_feed
+
+def check_emergency_alerts(tickers):
+    """Scan all tickers for immediate sell signals (Price < Cut Loss or Daily Drop > 4%)."""
+    emergencies = []
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            df = stock.history(period="1mo")
+            if df.empty:
+                continue
+                
+            df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'])
+            if len(df) < 20:
+                continue
+                
+            latest_close = df['Close'].iloc[-1]
+            prev_close = df['Close'].iloc[-2]
+            
+            # Use rolling 20-day low of the PREVIOUS day as the cut loss line
+            support = df['Low'].rolling(window=20).min().iloc[-2] 
+            
+            drop_pct = ((latest_close - prev_close) / prev_close) * 100
+            
+            # Condition 1: Dropped below Cut Loss
+            if latest_close < support:
+                emergencies.append({
+                    "Ticker": ticker,
+                    "Type": "🛑 หลุดแนวรับสำคัญ (Cut Loss Triggered)",
+                    "Message": f"ราคา (${latest_close:.2f}) หลุดจุดหนีตายที่ ${support:.2f} แล้ว! แนะนำให้พิจารณาตัดขาดทุน/ล็อกกำไร ทันที"
+                })
+            # Condition 2: Flash Crash (> 4% drop in one day)
+            elif drop_pct <= -4.0:
+                 emergencies.append({
+                    "Ticker": ticker,
+                    "Type": "📉 ทิ้งดิ่งรุนแรง (Flash Crash)",
+                    "Message": f"ร่วงหนัก {drop_pct:.1f}% ในวันเดียว! มีแรงเทขายผิดปกติ แนะนำให้รีบถอนตัวด่วน"
+                })
+        except:
+            pass
+            
+    return emergencies

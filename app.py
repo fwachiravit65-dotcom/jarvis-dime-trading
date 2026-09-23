@@ -4,9 +4,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import timedelta
 import yfinance as yf
-from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news
+from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news, check_emergency_alerts
 
 st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡")
+
+# ... (CSS stays the same, I'll search for the header to insert the banner)
+
 
 custom_css = """
 <style>
@@ -173,6 +176,46 @@ with st.sidebar:
 # --- MAIN DASHBOARD HEADER ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0px;'>⚡ JARVIS COMMAND CENTER</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #a3a8b8; margin-bottom: 30px; font-size: 1.1rem;'>ระบบผู้ช่วยสแกนหุ้นและจัดสรรพอร์ตอัตโนมัติ (Automated Swing Trade Assistant)</p>", unsafe_allow_html=True)
+
+# --- EMERGENCY PANIC ROOM BANNER ---
+@st.cache_data(ttl=1800) # Cache for 30 mins so it doesn't slow down the app every click
+def run_emergency_scan(tickers):
+    return check_emergency_alerts(tickers)
+
+emergencies = run_emergency_scan(watchlist)
+
+if emergencies:
+    st.markdown("""
+    <style>
+    @keyframes emergency-flash {
+        0% { background-color: rgba(239, 68, 68, 0.2); border: 2px solid rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+        50% { background-color: rgba(239, 68, 68, 0.6); border: 2px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); }
+        100% { background-color: rgba(239, 68, 68, 0.2); border: 2px solid rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+    }
+    .panic-room {
+        animation: emergency-flash 1.5s infinite;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        text-align: center;
+        color: white;
+    }
+    .panic-item {
+        font-size: 18px;
+        margin: 10px 0;
+        background: rgba(0,0,0,0.3);
+        padding: 10px;
+        border-radius: 8px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    html_content = "<div class='panic-room'><h3>🚨 สัญญาณเตือนภัยด่วน (EMERGENCY ALERTS) 🚨</h3>"
+    for em in emergencies:
+        html_content += f"<div class='panic-item'><b>[{em['Ticker']}] {em['Type']}</b><br/><span style='font-size: 15px;'>{em['Message']}</span></div>"
+    html_content += "</div>"
+    
+    st.markdown(html_content, unsafe_allow_html=True)
 
 
 tab1, tab2, tab3 = st.tabs(["📈 วางแผนเทรด (Trade)", "💼 สแกนพอร์ต (Portfolio)", "🚨 เรดาร์ตลาด (Radar)"])
