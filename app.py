@@ -372,6 +372,15 @@ with tab2:
                     fig_pie.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                     st.plotly_chart(fig_pie, use_container_width=True)
             
+            # --- SELL LIST SECTION ---
+            sell_df = screener_df[screener_df['Score'] <= 0].copy()
+            if not sell_df.empty:
+                st.markdown("---")
+                st.markdown("#### 🗑️ โผหุ้นที่ควรพิจารณาขาย / หลีกเลี่ยง (Sell & Avoid List)")
+                st.warning("⚠️ หุ้นกลุ่มนี้กำลังอยู่ในโซนอันตราย (Overbought สุดๆ หรือกราฟพังเป็นขาลง) หากมีของอยู่ควรพิจารณาล็อกกำไร/ตัดขาดทุน หรือห้ามเข้าซื้อเด็ดขาด!")
+                st.dataframe(sell_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
+
+            st.markdown("---")
             st.markdown("#### 📊 อัปเดตสถานะหุ้นทั้งหมด (Live Market Status)")
             st.dataframe(screener_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
 
