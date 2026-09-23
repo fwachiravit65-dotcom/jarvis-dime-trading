@@ -246,6 +246,9 @@ with tab1:
             
         st.markdown("<br>", unsafe_allow_html=True)
         
+        # Action Plan Generation (Auto)
+        plan = generate_trading_plan(df)
+        
         # Interactive Chart spanning full width
         fig = go.Figure()
         fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Price'))
@@ -255,8 +258,51 @@ with tab1:
         fig.add_trace(go.Scatter(x=df.index, y=df['Resistance'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Resistance'))
         fig.add_trace(go.Scatter(x=df.index, y=df['Support'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Support'))
         
+        # Add Forecasting Arrow based on Plan
+        if "error" not in plan and "status" in plan:
+            latest_date = df.index[-1]
+            # Fast forward ~7 days for the arrow target (visual only)
+            future_date = latest_date + timedelta(days=7)
+            
+            if plan["status"] in ["BUY_DIP", "BUY_BREAK"]:
+                target_price = plan['sell_target']
+                arrow_color = '#10b981' # Green
+                text = "📈 แนวโน้มขึ้น (UPTREND)"
+            elif plan["status"] == "WAIT_DIP":
+                target_price = plan['buy_target'] # Predict drop to support
+                arrow_color = '#ef4444' # Red
+                text = "📉 แนวโน้มย่อตัว (PULLBACK)"
+            else: # WAIT_BREAK
+                target_price = plan['sell_target'] 
+                arrow_color = '#f59e0b' # Yellow
+                text = "⚠️ ทดสอบแนวต้าน (TESTING)"
+                
+            fig.add_annotation(
+                x=future_date,
+                y=target_price,
+                ax=latest_date,
+                ay=latest_close,
+                xref="x", yref="y",
+                axref="x", ayref="y",
+                text=text,
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1.5,
+                arrowwidth=2,
+                arrowcolor=arrow_color,
+                font=dict(color=arrow_color, size=14, family="Prompt")
+            )
+            # Add a dotted line representing the expected path
+            fig.add_trace(go.Scatter(
+                x=[latest_date, future_date], 
+                y=[latest_close, target_price], 
+                mode='lines',
+                line=dict(color=arrow_color, width=2, dash='dot'),
+                showlegend=False
+            ))
+
         fig.update_layout(
-            title=dict(text=f"{selected_ticker} - Technical Analysis", font=dict(size=18, family="Prompt")),
+            title=dict(text=f"{selected_ticker} - Technical Analysis & AI Forecast", font=dict(size=18, family="Prompt")),
             yaxis_title='Price (USD)',
             template='plotly_dark',
             xaxis_rangeslider_visible=False,
@@ -267,30 +313,25 @@ with tab1:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Action Plan Generation
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("⚡ ประมวลผลสร้างแผนการเทรด (Generate Action Plan)"):
-            with st.spinner("กำลังคำนวณความเสี่ยงและจุดเข้าออก..."):
-                plan = generate_trading_plan(df)
-                
-                if "error" in plan:
-                    st.warning(f"⚠️ ข้อมูลไม่เพียงพอ: {plan['error']}")
-                else:
-                    st.markdown("### 🎯 แผนการเทรดที่ระบบแนะนำ (AI Action Plan)")
+        if "error" in plan:
+            st.warning(f"⚠️ ข้อมูลไม่เพียงพอ: {plan['error']}")
+        else:
+            st.markdown("### 🎯 แผนการเทรดที่ระบบแนะนำ (AI Action Plan)")
+            
+            if "status" in plan:
+                if plan["status"] == "WAIT_DIP":
+                    st.info("🟡 **คำแนะนำ:** ราคายังอยู่กลางทาง ควรรอให้ย่อตัวลงมาใกล้โซนซื้อ (Support) ค่อยเข้า")
+                elif plan["status"] == "BUY_DIP":
+                    st.success("🟢 **คำแนะนำ:** ราคาลงมาใกล้แนวรับแล้ว เป็นจังหวะ 'ทยอยเก็บของ' (Buy the Dip)")
+                elif plan["status"] == "WAIT_BREAK":
+                    st.info("🟡 **คำแนะนำ:** ราคาจ่อทะลุแนวต้าน ควรรอให้ทะลุแน่ๆ ค่อยเข้าซื้อตาม (Buy on Breakout)")
+                elif plan["status"] == "BUY_BREAK":
+                    st.success("🟢 **คำแนะนำ:** ราคาเบรกทะลุแนวต้านแล้ว เป็นจังหวะ 'ตามน้ำ' (Breakout Play)")
                     
-                    if "status" in plan:
-                        if plan["status"] == "WAIT_DIP":
-                            st.info("🟡 **คำแนะนำ:** ราคายังอยู่กลางทาง ควรรอให้ย่อตัวลงมาใกล้โซนซื้อ (Support) ค่อยเข้า")
-                        elif plan["status"] == "BUY_DIP":
-                            st.success("🟢 **คำแนะนำ:** ราคาลงมาใกล้แนวรับแล้ว เป็นจังหวะ 'ทยอยเก็บของ' (Buy the Dip)")
-                        elif plan["status"] == "WAIT_BREAK":
-                            st.info("🟡 **คำแนะนำ:** ราคาจ่อทะลุแนวต้าน ควรรอให้ทะลุแน่ๆ ค่อยเข้าซื้อตาม (Buy on Breakout)")
-                        elif plan["status"] == "BUY_BREAK":
-                            st.success("🟢 **คำแนะนำ:** ราคาเบรกทะลุแนวต้านแล้ว เป็นจังหวะ 'ตามน้ำ' (Breakout Play)")
-                            
-                    st.markdown("---")
-                    
-                    if "buy_target" in plan and "cut_loss" in plan and "sell_target" in plan:
+            st.markdown("---")
+            
+            if "buy_target" in plan and "cut_loss" in plan and "sell_target" in plan:
                         risk = plan['buy_target'] - plan['cut_loss']
                         reward = plan['sell_target'] - plan['buy_target']
                         if risk > 0 and reward > 0:
