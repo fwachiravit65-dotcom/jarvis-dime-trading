@@ -29,7 +29,6 @@ custom_css = """
 /* Hide Streamlit elements */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
 
 /* Modern Glassmorphism Metric Cards */
 [data-testid="stMetric"] {
