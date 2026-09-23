@@ -1,243 +1,294 @@
 import streamlit as st
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import plotly.express as px
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
+from datetime import timedelta
+import yfinance as yf
 from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news
 
-st.set_page_config(page_title="Jarvis Trading Center", layout="wide", page_icon="🤖")
+st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡")
 
 custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
-/* Apply modern font to ALL elements */
 * {
     font-family: 'Prompt', sans-serif !important;
 }
 
-/* Hide default Streamlit watermarks for a cleaner app feel */
+/* Remove top padding for a full-screen app feel */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 0rem !important;
+    max-width: 95% !important;
+}
+
+/* Hide Streamlit elements */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {background-color: transparent !important;}
+header {visibility: hidden;}
 
-/* Modern Button Styling */
-.stButton > button {
-    border-radius: 8px !important;
-    transition: all 0.3s ease !important;
+/* Modern Glassmorphism Metric Cards */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 15px 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+[data-testid="stMetric"]:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Make metric labels softer */
+[data-testid="stMetricLabel"] {
+    font-size: 14px !important;
+    color: #a3a8b8 !important;
     font-weight: 500 !important;
+}
+/* Make metric values massive */
+[data-testid="stMetricValue"] {
+    font-size: 30px !important;
+    font-weight: 700 !important;
+}
+
+/* Modern Glowing Buttons */
+.stButton > button {
+    background: linear-gradient(90deg, #ff4b4b 0%, #ff2a2a 100%) !important;
+    color: white !important;
+    border-radius: 12px !important;
     border: none !important;
+    padding: 10px 24px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 4px 15px rgba(255, 75, 75, 0.3) !important;
+    transition: all 0.3s ease !important;
+    width: 100%;
 }
 .stButton > button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(255, 75, 75, 0.4) !important;
+    box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6) !important;
+    background: linear-gradient(90deg, #ff2a2a 0%, #ff0000 100%) !important;
 }
 
-/* Modern Metric Cards (จุดซื้อ จุดขาย) */
-[data-testid="stMetric"] {
-    background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-[data-testid="stMetric"]:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Beautiful Tabs */
+/* Sleek Tabs */
 .stTabs [data-baseweb="tab-list"] {
+    background-color: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 6px;
     gap: 10px;
+    margin-bottom: 10px;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px 8px 0px 0px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    border-radius: 8px;
+    padding: 12px 24px;
+    border: none !important;
+    background-color: transparent;
+    transition: background-color 0.2s;
+    font-size: 16px;
+    font-weight: 500;
+}
+.stTabs [aria-selected="true"] {
+    background-color: rgba(255,255,255,0.12) !important;
+    color: white !important;
 }
 
-/* Adjust sidebar */
+/* Sidebar styling */
 [data-testid="stSidebar"] {
-    background-color: rgba(15, 17, 22, 0.95);
+    background-color: rgba(15, 17, 22, 0.98);
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Headers */
+h1 {
+    font-weight: 700 !important;
+    background: -webkit-linear-gradient(45deg, #fff, #a3a8b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-st.title("🤖 Jarvis Command Center")
-
 watchlist = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "RGTI", "RKLB", "SHOP", "JEPQ", "AMD", "TSM"]
-
-# --- Sidebar Configuration ---
-with st.sidebar:
-    st.header("📊 ตั้งค่าข้อมูล")
-    selected_ticker = st.selectbox("เลือกหุ้นเพื่อเจาะลึก (Single Stock):", watchlist)
-    custom_ticker = st.text_input("หรือพิมพ์ชื่อหุ้นตัวอื่น (e.g. NFLX):").upper()
-    if custom_ticker:
-        selected_ticker = custom_ticker
-        
-    period = st.selectbox("กรอบเวลาย้อนหลัง (Timeframe):", ["3mo", "6mo", "1y", "2y", "5y"], index=2)
-    if st.button("🔄 Refresh Data"):
-        st.cache_data.clear()
-
-# Create Tabs
-tab1, tab2, tab3 = st.tabs(["🔍 เจาะลึกรายตัว (Single Stock)", "💼 จัดพอร์ต & สแกนหุ้น (Money Management)", "📰 ข่าวสาร & เรดาร์ความผันผวน (Daily News)"])
 
 @st.cache_data(ttl=3600)
 def load_data(ticker, period):
     return get_stock_data(ticker, period)
 
+# --- SIDEBAR (Settings & Navigation) ---
+with st.sidebar:
+    st.markdown("### ⚙️ การตั้งค่า (Settings)")
+    st.markdown("---")
+    
+    selected_ticker = st.selectbox("🎯 เลือกหุ้นที่ต้องการวิเคราะห์:", watchlist, index=0)
+    
+    st.caption("หรือพิมพ์ชื่อหุ้นตัวอื่น:")
+    custom_ticker = st.text_input("Custom Ticker (e.g. NFLX)", value="").upper()
+    if custom_ticker and custom_ticker != "":
+        selected_ticker = custom_ticker
+        
+    period = st.selectbox("📅 กรอบเวลาย้อนหลัง (Timeframe):", ["3mo", "6mo", "1y", "2y", "5y"], index=2)
+    
+    st.markdown("---")
+    if st.button("🔄 อัปเดตข้อมูลตลาด (Refresh)"):
+        st.cache_data.clear()
+        st.rerun()
+
+# --- MAIN DASHBOARD HEADER ---
+st.markdown("<h1 style='text-align: center; margin-bottom: 0px;'>⚡ JARVIS COMMAND CENTER</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #a3a8b8; margin-bottom: 30px; font-size: 1.1rem;'>ระบบผู้ช่วยสแกนหุ้นและจัดสรรพอร์ตอัตโนมัติ (Automated Swing Trade Assistant)</p>", unsafe_allow_html=True)
+
+
+tab1, tab2, tab3 = st.tabs(["📈 วางแผนเทรด (Trade)", "💼 สแกนพอร์ต (Portfolio)", "🚨 เรดาร์ตลาด (Radar)"])
+
 # --- TAB 1: Single Stock Analysis ---
 with tab1:
-    with st.spinner(f"กำลังดึงข้อมูลและคำนวณแผนสำหรับ {selected_ticker}..."):
-        df, info = load_data(selected_ticker, period)
-
-    if df is None or df.empty:
-        st.error(f"ไม่พบข้อมูลสำหรับหุ้น {selected_ticker} กรุณาตรวจสอบชื่อย่ออีกครั้ง")
+    df, info = load_data(selected_ticker, period)
+    
+    if df is None:
+        st.error(f"❌ ไม่พบข้อมูลสำหรับหุ้น {selected_ticker} หรือตลาดยังไม่เปิด")
     else:
-        col1, col2 = st.columns([2, 1.2])
+        latest_close = df['Close'].iloc[-1]
+        signals = analyze_signals(df)
+        
+        # 4-Column Metric Header (Modern Top Bar)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.subheader(f"📈 {selected_ticker} - Technical Chart")
-            fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.6, 0.2, 0.2])
-                                
-            # 1. Candlestick and MAs
-            fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Price'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], line=dict(color='orange', width=1), name='SMA 50'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], line=dict(color='blue', width=1), name='SMA 200'), row=1, col=1)
-            
-            # Support and Resistance Lines
-            fig.add_trace(go.Scatter(x=df.index, y=df['Resistance'], line=dict(color='rgba(255, 99, 71, 0.7)', width=2, dash='dot'), name='Resistance (20D)'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['Support'], line=dict(color='rgba(60, 179, 113, 0.7)', width=2, dash='dot'), name='Support (20D)'), row=1, col=1)
-            
-            # 2. Volume
-            colors = ['red' if row['Open'] - row['Close'] >= 0 else 'green' for index, row in df.iterrows()]
-            fig.add_trace(go.Bar(x=df.index, y=df['Volume'], marker_color=colors, name='Volume'), row=2, col=1)
-            
-            # 3. RSI
-            fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], line=dict(color='purple', width=1.5), name='RSI'), row=3, col=1)
-            fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
-            fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
-            
-            fig.update_layout(height=800, xaxis_rangeslider_visible=False, margin=dict(l=0, r=0, t=30, b=0))
-            st.plotly_chart(fig, use_container_width=True)
-            
+            st.metric("💰 ราคาปัจจุบัน (Price)", f"${latest_close:.2f}")
         with col2:
-            st.subheader("🏢 ข้อมูลปัจจุบัน (Current Status)")
-            # Use reliable Close price from DataFrame instead of flaky info dict
-            latest_close = df['Close'].iloc[-1]
-            st.metric("Current Price", f"${latest_close:.2f}")
-                
-            st.subheader("🚦 สัญญาณทางเทคนิค")
-            signals = analyze_signals(df)
-            for sig in signals:
-                st.info(sig)
-                
-            st.markdown("---")
-            st.subheader("🎯 แผนการเทรด (Action Plan)")
-            st.caption("คลิกปุ่มด้านล่างเพื่อคำนวณแผนการเข้าซื้อ/ขาย จากข้อมูลกราฟล่าสุด")
+            st.metric("🎯 เป้าขาย (Resistance)", f"${signals['Resistance']:.2f}" if pd.notna(signals['Resistance']) else "N/A")
+        with col3:
+            st.metric("🛑 จุดตัดขาดทุน (Cut Loss)", f"${signals['Support']:.2f}" if pd.notna(signals['Support']) else "N/A")
+        with col4:
+            rsi_val = df['RSI'].iloc[-1]
+            st.metric("🔥 โมเมนตัม (RSI)", f"{rsi_val:.1f}" if pd.notna(rsi_val) else "N/A")
             
-            if st.button("⚡ สร้างแผนการเทรด (Generate Plan)", type="primary", use_container_width=True):
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Interactive Chart spanning full width
+        fig = go.Figure()
+        fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Price'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], line=dict(color='#f59e0b', width=2), name='SMA 50'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], line=dict(color='#3b82f6', width=2), name='SMA 200'))
+        
+        fig.add_trace(go.Scatter(x=df.index, y=df['Resistance'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Resistance'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['Support'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Support'))
+        
+        fig.update_layout(
+            title=dict(text=f"{selected_ticker} - Technical Analysis", font=dict(size=18, family="Prompt")),
+            yaxis_title='Price (USD)',
+            template='plotly_dark',
+            xaxis_rangeslider_visible=False,
+            height=550,
+            margin=dict(l=0, r=0, t=50, b=0),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Action Plan Generation
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("⚡ ประมวลผลสร้างแผนการเทรด (Generate Action Plan)"):
+            with st.spinner("กำลังคำนวณความเสี่ยงและจุดเข้าออก..."):
                 plan = generate_trading_plan(df)
-                if plan:
-                    st.markdown(f"### {plan['action']}")
-                    st.write(f"**เหตุผล:** {plan['reason']}")
+                
+                if "error" in plan:
+                    st.warning(f"⚠️ ข้อมูลไม่เพียงพอ: {plan['error']}")
+                else:
+                    st.markdown("### 🎯 แผนการเทรดที่ระบบแนะนำ (AI Action Plan)")
                     
-                    st.markdown("#### รายละเอียดตัวเลข:")
-                    p_col1, p_col2 = st.columns(2)
+                    if "status" in plan:
+                        if plan["status"] == "WAIT_DIP":
+                            st.info("🟡 **คำแนะนำ:** ราคายังอยู่กลางทาง ควรรอให้ย่อตัวลงมาใกล้โซนซื้อ (Support) ค่อยเข้า")
+                        elif plan["status"] == "BUY_DIP":
+                            st.success("🟢 **คำแนะนำ:** ราคาลงมาใกล้แนวรับแล้ว เป็นจังหวะ 'ทยอยเก็บของ' (Buy the Dip)")
+                        elif plan["status"] == "WAIT_BREAK":
+                            st.info("🟡 **คำแนะนำ:** ราคาจ่อทะลุแนวต้าน ควรรอให้ทะลุแน่ๆ ค่อยเข้าซื้อตาม (Buy on Breakout)")
+                        elif plan["status"] == "BUY_BREAK":
+                            st.success("🟢 **คำแนะนำ:** ราคาเบรกทะลุแนวต้านแล้ว เป็นจังหวะ 'ตามน้ำ' (Breakout Play)")
+                            
+                    st.markdown("---")
                     
-                    with p_col1:
-                        st.metric("📍 จุดเข้าซื้อ (Buy Target)", f"${plan['buy_target']:.2f}" if plan['buy_target'] else "N/A")
-                        st.metric("🛑 จุดยอมแพ้ (Cut Loss)", f"${plan['cut_loss']:.2f}" if plan['cut_loss'] else "N/A")
-                        
-                    with p_col2:
-                        st.metric("💰 จุดทำกำไร (Sell Target)", f"${plan['sell_target']:.2f}" if plan['sell_target'] else "N/A")
-                        
-                    if plan['buy_target'] and plan['sell_target'] and plan['cut_loss'] and plan['buy_target'] > plan['cut_loss']:
+                    if "buy_target" in plan and "cut_loss" in plan and "sell_target" in plan:
                         risk = plan['buy_target'] - plan['cut_loss']
                         reward = plan['sell_target'] - plan['buy_target']
                         if risk > 0 and reward > 0:
                             rr_ratio = reward / risk
-                            st.write(f"**อัตราส่วน Risk/Reward (กรณีรอจุดเข้า):** 1 : {rr_ratio:.2f}")
                             if rr_ratio >= 2:
-                                st.success("✅ ความคุ้มค่าสูง: กำไรมากกว่าความเสี่ยง 2 เท่าขึ้นไป")
+                                st.success(f"✅ ความคุ้มค่าสูง: กำไรมากกว่าความเสี่ยง 2 เท่าขึ้นไป (R/R = 1:{rr_ratio:.2f})")
                             else:
-                                st.warning("⚠️ ความคุ้มค่าปานกลาง/ต่ำ: ควรระมัดระวังในการเข้าซื้อ")
-                    
-                    st.markdown("---")
-                    st.markdown("#### ⚡ กรณีต้องการซื้อ/ขาย ณ ราคาปัจจุบัน (Immediate Action)")
-                    st.caption("ข้อมูลสำหรับกรณีที่คุณไม่อยากรอกราฟย่อตัว/เบรกเอาท์ และต้องการกดคำสั่งในแอป Dime ทันทีตอนนี้")
-                    
-                    imm_col1, imm_col2 = st.columns(2)
-                    with imm_col1:
-                        st.info(f"**🛒 หากกด 'ซื้อ' ทันที (Buy Now)**\n\n"
-                                f"จะได้ราคาต้นทุนประมาณ: **${plan['immediate']['current_price']:.2f}**\n\n"
-                                f"🎯 เป้าขาย (Resistance): **${plan['immediate']['buy_target']:.2f}**\n\n"
-                                f"🛑 จุดหนีตาย (Cut Loss): **${plan['immediate']['buy_cut_loss']:.2f}**")
-                    with imm_col2:
-                        st.warning(f"**💰 หากกด 'ขาย' ทันที (Sell Now)**\n\n"
-                                   f"จะขายได้เงินที่ราคาประมาณ: **${plan['immediate']['current_price']:.2f}**\n\n"
-                                   f"*(ใช้ในกรณีที่คุณมีของอยู่แล้ว และต้องการล็อกกำไร หรือหนีตาย ณ ราคาตลาดปัจจุบัน)*")
+                                st.warning(f"⚠️ ความคุ้มค่าปานกลาง: (R/R = 1:{rr_ratio:.2f}) แนะนำให้ระมัดระวังในการเข้าไม้ใหญ่")
+                                
+                    st.markdown("*(สำหรับคนที่ถือหุ้นอยู่แล้ว หรือต้องการกดซื้อทันที ณ ราคาปัจจุบัน)*")
+                    st.caption(f"หากกดซื้อที่ราคา ${plan['immediate']['current_price']:.2f} ตอนนี้ -> เป้าทำกำไรคือ **${plan['immediate']['buy_target']:.2f}** และจุดหนีตายคือ **${plan['immediate']['buy_cut_loss']:.2f}**")
+
 
 # --- TAB 2: Money Management & Screener ---
 with tab2:
-    st.header("💼 ระบบจัดสรรเงินทุน (Money Management & Stock Screener)")
-    st.markdown("ระบบจะสแกนกราฟของหุ้นใน Watchlist ทั้งหมดพร้อมกัน เพื่อหาตัวที่กำลัง **ย่อตัวเสร็จแล้ว** หรือ **แนวโน้มแข็งแกร่งที่สุด** และแบ่งเงินลงทุนให้เหมาะสม")
+    st.markdown("### 💼 ระบบสแกนและกระจายเงินลงทุนอัตโนมัติ")
+    st.markdown("ระบบจะกวาดสายตาสแกนหุ้นใน Watchlist ทั้งหมด เพื่อคัดเฉพาะตัวที่กราฟแข็งแกร่ง และแบ่งเงินให้คุณโดยอัตโนมัติ")
     
-    invest_amount = st.number_input("ใส่จำนวนเงินที่คุณต้องการเติมเข้าพอร์ตรอบนี้ (USD):", min_value=1.0, value=100.0, step=10.0)
-    
-    if st.button("🚀 สแกนตลาดและจัดสรรเงิน", type="primary"):
-        with st.spinner("กำลังสแกนข้อมูล Watchlist... อาจใช้เวลาสักครู่"):
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        invest_amount = st.number_input("💵 เงินทุนเตรียมเข้าซื้อ (USD):", min_value=1.0, value=100.0, step=10.0)
+        scan_btn = st.button("🚀 สแกนตลาด")
+        
+    if scan_btn:
+        with st.spinner("กำลังสแกนหุ้นทุกตัว..."):
             screener_df = screen_all_stocks(watchlist, period)
-            
-            st.subheader("📊 สถานะหุ้นทั้งหมดตอนนี้")
-            st.dataframe(screener_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
-            
-            st.markdown("---")
-            st.subheader("💰 คำแนะนำการแบ่งเงิน (Allocation Plan)")
             msg, alloc_df = allocate_funds(screener_df, invest_amount)
-            st.info(msg)
+            
+            st.success(msg)
             
             if not alloc_df.empty:
-                a_col1, a_col2 = st.columns([1, 1])
-                with a_col1:
+                r1_col1, r1_col2 = st.columns([1.5, 1])
+                with r1_col1:
+                    st.markdown("#### 🛒 โผหุ้นที่ควรเข้าซื้อ (Buy List)")
                     st.dataframe(alloc_df[['Ticker', 'Status', 'Allocation ($)']].style.format({'Allocation ($)': '${:.2f}'}), use_container_width=True)
-                with a_col2:
-                    fig_pie = px.pie(alloc_df, values='Allocation ($)', names='Ticker', title="สัดส่วนการกระจายเงิน")
+                with r1_col2:
+                    fig_pie = px.pie(alloc_df, values='Allocation ($)', names='Ticker', hole=0.45)
+                    fig_pie.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                     st.plotly_chart(fig_pie, use_container_width=True)
+            
+            st.markdown("#### 📊 อัปเดตสถานะหุ้นทั้งหมด (Live Market Status)")
+            st.dataframe(screener_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
+
 
 # --- TAB 3: Daily News & Alerts ---
 with tab3:
-    st.header("📰 ข่าวสาร & เรดาร์จับการสวิง (Daily News & Alerts)")
-    st.markdown("หน้านี้จะอัปเดตความเคลื่อนไหวรายวัน ว่ามีหุ้นตัวไหนสวิงแรงผิดปกติ และแสดงพาดหัวข่าวล่าสุดให้คุณติดตามครับ")
+    st.markdown("### 🚨 เรดาร์จับความผันผวน & ข่าวกรอง (Market Radar)")
+    st.markdown("สแกนหา 'ความผิดปกติ' ของราคาหุ้น และสรุปพาดหัวข่าวสำคัญที่ส่งผลกระทบต่อราคาโดยตรง")
     
-    if st.button("📡 ตรวจสอบเรดาร์ตลาดวันนี้ (Refresh Radar)", type="primary", use_container_width=True):
-        with st.spinner("กำลังกวาดสัญญาณความผันผวนและพาดหัวข่าวจากตลาดโลก (อาจใช้เวลา 1-2 นาที)..."):
+    if st.button("📡 กวาดสัญญาณตลาด (Scan Radar)"):
+        with st.spinner("กำลังประมวลผลข้อมูลความผันผวนและข่าวจาก Wall Street..."):
             alerts, news_feed = get_daily_alerts_and_news(watchlist)
             
-            st.subheader("🚨 เรดาร์จับความผันผวน (Volatility Alerts)")
-            st.caption("ระบบคำนวณจากระยะการแกว่งตัว (ATR) และโมเมนตัม (MACD) ของวันนี้เทียบกับค่าเฉลี่ยในอดีต")
             if alerts:
+                st.markdown("#### ⚠️ หุ้นที่ต้องระวังการสวิงแรง (Volatility Alerts)")
                 for alert in alerts:
                     if "สวิงลง" in alert['Alert'] or "ลบกดดัน" in alert['Alert']:
                         st.error(f"**[{alert['Ticker']}]** {alert['Alert']} - {alert['Details']}")
                     else:
                         st.success(f"**[{alert['Ticker']}]** {alert['Alert']} - {alert['Details']}")
             else:
-                st.info("✅ วันนี้ตลาดยังสงบ ไม่มีหุ้นตัวไหนในพอร์ตสวิงแรงผิดปกติให้ต้องกังวลครับ")
+                st.info("✅ วันนี้ตลาดยังสงบดี ไม่มีหุ้นตัวไหนสวิงแรงผิดปกติครับ")
                 
             st.markdown("---")
-            st.subheader("🗞️ สแกนพาดหัวข่าวล่าสุด (News Sentiment Radar)")
-            st.caption("ระบบใช้ Keyword Analysis ตรวจจับคำศัพท์ในข่าวเพื่อประเมินความเสี่ยงและทิศทางเบื้องต้น คลิกที่พาดหัวเพื่ออ่านเต็ม (ภาษาอังกฤษ)")
+            st.markdown("#### 🗞️ ข่าวที่กระทบต่อราคา (Actionable Catalyst)")
             
             if news_feed:
                 for item in news_feed:
                     if item['Color'] == 'green':
-                        st.success(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
+                        st.success(f"🟢 **[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*")
                     elif item['Color'] == 'red':
-                        st.error(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
+                        st.error(f"🔴 **[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*")
                     else:
-                        st.info(f"**[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*\n\n(โดย {item['Publisher']})")
+                        st.info(f"🔵 **[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*")
             else:
-                st.write("ไม่มีข่าวสารอัปเดตในขณะนี้")
+                st.write("ไม่มีข่าวเด่นที่ตรงกับความผันผวนในขณะนี้")
