@@ -15,8 +15,12 @@ custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
 
-* {
-    font-family: 'Prompt', sans-serif !important;
+/* Apply font but protect material icons */
+html, body, [class*="st-"] {
+    font-family: 'Prompt', sans-serif;
+}
+.stIcon, .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded' !important;
 }
 
 /* Remove top padding for a full-screen app feel */
