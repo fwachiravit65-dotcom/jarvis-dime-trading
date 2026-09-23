@@ -332,17 +332,17 @@ with tab1:
             st.markdown("---")
             
             if "buy_target" in plan and "cut_loss" in plan and "sell_target" in plan:
-                        risk = plan['buy_target'] - plan['cut_loss']
-                        reward = plan['sell_target'] - plan['buy_target']
-                        if risk > 0 and reward > 0:
-                            rr_ratio = reward / risk
-                            if rr_ratio >= 2:
-                                st.success(f"✅ ความคุ้มค่าสูง: กำไรมากกว่าความเสี่ยง 2 เท่าขึ้นไป (R/R = 1:{rr_ratio:.2f})")
-                            else:
-                                st.warning(f"⚠️ ความคุ้มค่าปานกลาง: (R/R = 1:{rr_ratio:.2f}) แนะนำให้ระมัดระวังในการเข้าไม้ใหญ่")
-                                
-                    st.markdown("*(สำหรับคนที่ถือหุ้นอยู่แล้ว หรือต้องการกดซื้อทันที ณ ราคาปัจจุบัน)*")
-                    st.caption(f"หากกดซื้อที่ราคา ${plan['immediate']['current_price']:.2f} ตอนนี้ -> เป้าทำกำไรคือ **${plan['immediate']['buy_target']:.2f}** และจุดหนีตายคือ **${plan['immediate']['buy_cut_loss']:.2f}**")
+                risk = plan['buy_target'] - plan['cut_loss']
+                reward = plan['sell_target'] - plan['buy_target']
+                if risk > 0 and reward > 0:
+                    rr_ratio = reward / risk
+                    if rr_ratio >= 2:
+                        st.success(f"✅ ความคุ้มค่าสูง: กำไรมากกว่าความเสี่ยง 2 เท่าขึ้นไป (R/R = 1:{rr_ratio:.2f})")
+                    else:
+                        st.warning(f"⚠️ ความคุ้มค่าปานกลาง: (R/R = 1:{rr_ratio:.2f}) แนะนำให้ระมัดระวังในการเข้าไม้ใหญ่")
+                        
+            st.markdown("*(สำหรับคนที่ถือหุ้นอยู่แล้ว หรือต้องการกดซื้อทันที ณ ราคาปัจจุบัน)*")
+            st.caption(f"หากกดซื้อที่ราคา ${plan['immediate']['current_price']:.2f} ตอนนี้ -> เป้าทำกำไรคือ **${plan['immediate']['buy_target']:.2f}** และจุดหนีตายคือ **${plan['immediate']['buy_cut_loss']:.2f}**")
 
 
 # --- TAB 2: Money Management & Screener ---
