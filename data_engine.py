@@ -337,3 +337,65 @@ def check_emergency_alerts(tickers):
             pass
             
     return emergencies
+
+def generate_rotation_plan(portfolio_df, screener_df, max_new_picks=3):
+    """Analyzes current holdings against the screener and recommends sell/buy actions."""
+    actions = []
+    freed_cash = 0.0
+    
+    # 1. Evaluate current holdings
+    for idx, row in portfolio_df.iterrows():
+        ticker = row['Ticker']
+        try:
+            value = float(row['Current Value ($)'])
+        except:
+            continue
+            
+        if value <= 0:
+            continue
+            
+        stock_data = screener_df[screener_df['Ticker'] == ticker]
+        if stock_data.empty:
+            continue
+            
+        score = stock_data.iloc[0]['Score']
+        status = stock_data.iloc[0]['Status']
+        
+        if score <= 0: # Weak momentum or downtrend
+            actions.append({
+                "Action": "SELL 🔴",
+                "Ticker": ticker,
+                "Amount": value,
+                "Reason": f"โมเมนตัมอ่อนแอ/กราฟเสียทรง ({status})"
+            })
+            freed_cash += value
+        elif score < 5:
+            actions.append({
+                "Action": "HOLD 🟡",
+                "Ticker": ticker,
+                "Amount": value,
+                "Reason": f"รอดูสถานการณ์ (Score: {score:.1f}, {status})"
+            })
+        else:
+            actions.append({
+                "Action": "HOLD 🟢",
+                "Ticker": ticker,
+                "Amount": value,
+                "Reason": f"ยังคงแข็งแกร่ง (Score: {score:.1f})"
+            })
+            
+    # 2. Allocate freed cash to best candidates
+    buy_actions = []
+    if freed_cash > 0:
+        msg, alloc_df = allocate_funds(screener_df, freed_cash, max_picks=max_new_picks)
+        
+        if not alloc_df.empty:
+            for idx, row in alloc_df.iterrows():
+                buy_actions.append({
+                    "Action": "BUY 🟢",
+                    "Ticker": row['Ticker'],
+                    "Amount": row['Allocation ($)'],
+                    "Reason": f"แข็งแกร่ง ({row['Status']})"
+                })
+                
+    return actions, buy_actions, freed_cash

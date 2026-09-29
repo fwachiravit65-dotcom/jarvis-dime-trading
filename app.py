@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import timedelta
 import yfinance as yf
-from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news, check_emergency_alerts
+from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news, check_emergency_alerts, generate_rotation_plan
 
 st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡", initial_sidebar_state="expanded")
 
@@ -221,7 +221,7 @@ if emergencies:
     st.markdown(html_content, unsafe_allow_html=True)
 
 
-tab1, tab2, tab3 = st.tabs(["📈 วางแผนเทรด (Trade)", "💼 สแกนพอร์ต (Portfolio)", "🚨 เรดาร์ตลาด (Radar)"])
+tab1, tab2, tab3, tab4 = st.tabs(["📈 วางแผนเทรด (Trade)", "💼 สแกนพอร์ต (Portfolio)", "🚨 เรดาร์ตลาด (Radar)", "🔄 สับเปลี่ยนหุ้น (Rotation)"])
 
 # --- TAB 1: Single Stock Analysis ---
 with tab1:
@@ -421,3 +421,59 @@ with tab3:
                         st.info(f"🔵 **[{item['Ticker']}] {item['Sentiment']}**\n\n**[{item['Title']}]({item['Link']})**\n\n*{item['Summary']}*")
             else:
                 st.write("ไม่มีข่าวเด่นที่ตรงกับความผันผวนในขณะนี้")
+
+# --- TAB 4: Smart Portfolio Rotation ---
+with tab4:
+    st.markdown("### 🔄 ระบบสับเปลี่ยนหุ้นอัตโนมัติ (Smart Rotation)")
+    st.markdown("กรอกข้อมูลหุ้นในพอร์ตปัจจุบันของคุณ เพื่อให้ AI ประเมินว่าควร **ขายทำกำไร/ตัดขาดทุนตัวไหน** แล้วเอาเงินไป **ซื้อหุ้นตัวไหนที่กำลังเป็นขาขึ้น** แทน (Mock Version ก่อนเชื่อมต่อฐานข้อมูล)")
+    
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.markdown("#### 1️⃣ ระบุพอร์ตปัจจุบันของคุณ")
+        if 'mock_portfolio' not in st.session_state:
+            st.session_state.mock_portfolio = pd.DataFrame([
+                {"Ticker": "AAPL", "Current Value ($)": 500.0},
+                {"Ticker": "TSLA", "Current Value ($)": 300.0},
+                {"Ticker": "SHOP", "Current Value ($)": 0.0},
+            ])
+            
+        edited_portfolio = st.data_editor(
+            st.session_state.mock_portfolio,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "Ticker": st.column_config.SelectboxColumn("Ticker", options=watchlist, required=True),
+                "Current Value ($)": st.column_config.NumberColumn("มูลค่าปัจจุบัน ($)", min_value=0.0, format="$%.2f")
+            }
+        )
+        
+    with col2:
+        st.markdown("#### 2️⃣ ประมวลผลแผนสับเปลี่ยน")
+        max_new = st.slider("กระจายเงินไปซื้อหุ้นใหม่ไม่เกินกี่ตัว?", min_value=1, max_value=5, value=3)
+        if st.button("🔄 วิเคราะห์แผนการสับเปลี่ยน (Generate Rotation Plan)"):
+            with st.spinner("กำลังสแกนเปรียบเทียบความแข็งแกร่ง..."):
+                screener_df = screen_all_stocks(watchlist, period)
+                sell_holds, buys, freed_cash = generate_rotation_plan(edited_portfolio, screener_df, max_new_picks=max_new)
+                
+                st.markdown("##### 🛒 1. หุ้นเดิมที่มีอยู่ (Sell & Hold)")
+                for item in sell_holds:
+                    if "SELL" in item['Action']:
+                        st.error(f"{item['Action']} **{item['Ticker']}** | นำเงินออกมา **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
+                    elif "🟢" in item['Action']:
+                        st.success(f"{item['Action']} **{item['Ticker']}** | ถือต่อไปมูลค่า **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
+                    else:
+                        st.warning(f"{item['Action']} **{item['Ticker']}** | ถือเพื่อรอดูมูลค่า **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
+                        
+                st.markdown("---")
+                st.markdown(f"##### 💰 2. เงินสดที่ได้จากการขาย: **${freed_cash:.2f}**")
+                
+                if freed_cash > 0:
+                    st.markdown("##### 🚀 3. คำแนะนำในการเข้าซื้อหุ้นใหม่ (Buy List)")
+                    if not buys:
+                        st.info("ตลาดช่วงนี้ไม่น่าไว้ใจ แนะนำให้ **ถือเงินสด (Hold Cash)** ไว้ก่อน")
+                    else:
+                        for item in buys:
+                            st.success(f"{item['Action']} **{item['Ticker']}** | แบ่งเงินเข้าซื้อ **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
+                else:
+                    st.info("ไม่มีสัญญาณขายหุ้นเดิม จึงไม่มีเงินสดเหลือสำหรับจัดสรรใหม่ในสัปดาห์นี้")
+
