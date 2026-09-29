@@ -6,6 +6,25 @@ from datetime import timedelta
 import yfinance as yf
 from data_engine import get_stock_data, analyze_signals, generate_trading_plan, screen_all_stocks, allocate_funds, get_daily_alerts_and_news, check_emergency_alerts, generate_rotation_plan
 
+
+import json
+import os
+
+PORTFOLIO_FILE = "user_portfolios.json"
+
+def load_portfolios():
+    if os.path.exists(PORTFOLIO_FILE):
+        try:
+            with open(PORTFOLIO_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_portfolios(data):
+    with open(PORTFOLIO_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
 st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡", initial_sidebar_state="expanded")
 
 # ... (CSS stays the same, I'll search for the header to insert the banner)
@@ -425,20 +444,43 @@ with tab3:
 # --- TAB 4: Smart Portfolio Rotation ---
 with tab4:
     st.markdown("### 🔄 ระบบสับเปลี่ยนหุ้นอัตโนมัติ (Smart Rotation)")
-    st.markdown("กรอกข้อมูลหุ้นในพอร์ตปัจจุบันของคุณ เพื่อให้ AI ประเมินว่าควร **ขายทำกำไร/ตัดขาดทุนตัวไหน** แล้วเอาเงินไป **ซื้อหุ้นตัวไหนที่กำลังเป็นขาขึ้น** แทน (Mock Version ก่อนเชื่อมต่อฐานข้อมูล)")
+    st.markdown("เลือกระบุโปรไฟล์ของคุณ หรือสร้างใหม่เพื่อบันทึกพอร์ตส่วนตัวของคุณเอง (ไม่ต้องใช้รหัสผ่าน)")
     
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.markdown("#### 1️⃣ ระบุพอร์ตปัจจุบันของคุณ")
-        if 'mock_portfolio' not in st.session_state:
-            st.session_state.mock_portfolio = pd.DataFrame([
-                {"Ticker": "AAPL", "Current Value ($)": 500.0},
-                {"Ticker": "TSLA", "Current Value ($)": 300.0},
-                {"Ticker": "SHOP", "Current Value ($)": 0.0},
-            ])
+    portfolios_db = load_portfolios()
+    profile_names = list(portfolios_db.keys())
+    
+    st.markdown("#### 👤 1. เลือกหรือสร้างโปรไฟล์ผู้ใช้งาน")
+    col_sel, col_new = st.columns([1, 1])
+    
+    with col_sel:
+        options = ["-- เลือกโปรไฟล์ --"] + profile_names
+        # Default index handling
+        selected_profile = st.selectbox("รายชื่อโปรไฟล์ที่มีอยู่:", options)
+        
+    with col_new:
+        new_profile_name = st.text_input("➕ สร้างโปรไฟล์ใหม่ (พิมพ์ชื่อแล้วกดสร้าง):")
+        if st.button("บันทึกชื่อใหม่"):
+            if new_profile_name and new_profile_name not in portfolios_db:
+                portfolios_db[new_profile_name] = [{"Ticker": "AAPL", "Current Value ($)": 0.0}]
+                save_portfolios(portfolios_db)
+                st.success(f"สร้างโปรไฟล์ {new_profile_name} แล้ว! กรุณาเลือกจากแถบด้านซ้าย")
+                st.rerun()
+            elif new_profile_name in portfolios_db:
+                st.warning("ชื่อนี้มีอยู่แล้วครับ")
+                
+    st.markdown("---")
+    
+    if selected_profile != "-- เลือกโปรไฟล์ --":
+        st.markdown(f"#### 📊 2. จัดการพอร์ตการลงทุนของ: **{selected_profile}**")
+        
+        current_data = portfolios_db.get(selected_profile, [])
+        if not current_data:
+            current_data = [{"Ticker": "AAPL", "Current Value ($)": 0.0}]
             
+        df_portfolio = pd.DataFrame(current_data)
+        
         edited_portfolio = st.data_editor(
-            st.session_state.mock_portfolio,
+            df_portfolio,
             num_rows="dynamic",
             use_container_width=True,
             column_config={
@@ -447,12 +489,19 @@ with tab4:
             }
         )
         
-    with col2:
-        st.markdown("#### 2️⃣ ประมวลผลแผนสับเปลี่ยน")
+        if st.button("💾 บันทึกข้อมูลพอร์ต"):
+            # Cleanup any empty rows or NaNs
+            clean_data = edited_portfolio.dropna(subset=['Ticker']).to_dict('records')
+            portfolios_db[selected_profile] = clean_data
+            save_portfolios(portfolios_db)
+            st.success("บันทึกข้อมูลพอร์ตเรียบร้อยแล้ว!")
+            
+        st.markdown("#### 🤖 3. ประมวลผลแผนสับเปลี่ยน (AI Rotation)")
         max_new = st.slider("กระจายเงินไปซื้อหุ้นใหม่ไม่เกินกี่ตัว?", min_value=1, max_value=5, value=3)
-        if st.button("🔄 วิเคราะห์แผนการสับเปลี่ยน (Generate Rotation Plan)"):
+        if st.button("🔄 วิเคราะห์แผนการสับเปลี่ยน"):
             with st.spinner("กำลังสแกนเปรียบเทียบความแข็งแกร่ง..."):
                 screener_df = screen_all_stocks(watchlist, period)
+                # Pass the edited_portfolio explicitly to avoid needing to save first
                 sell_holds, buys, freed_cash = generate_rotation_plan(edited_portfolio, screener_df, max_new_picks=max_new)
                 
                 st.markdown("##### 🛒 1. หุ้นเดิมที่มีอยู่ (Sell & Hold)")
@@ -476,4 +525,3 @@ with tab4:
                             st.success(f"{item['Action']} **{item['Ticker']}** | แบ่งเงินเข้าซื้อ **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
                 else:
                     st.info("ไม่มีสัญญาณขายหุ้นเดิม จึงไม่มีเงินสดเหลือสำหรับจัดสรรใหม่ในสัปดาห์นี้")
-
