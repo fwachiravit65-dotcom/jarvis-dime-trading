@@ -504,24 +504,107 @@ with tab4:
                 # Pass the edited_portfolio explicitly to avoid needing to save first
                 sell_holds, buys, freed_cash = generate_rotation_plan(edited_portfolio, screener_df, max_new_picks=max_new)
                 
-                st.markdown("##### 🛒 1. หุ้นเดิมที่มีอยู่ (Sell & Hold)")
-                for item in sell_holds:
-                    if "SELL" in item['Action']:
-                        st.error(f"{item['Action']} **{item['Ticker']}** | นำเงินออกมา **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
-                    elif "🟢" in item['Action']:
-                        st.success(f"{item['Action']} **{item['Ticker']}** | ถือต่อไปมูลค่า **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
-                    else:
-                        st.warning(f"{item['Action']} **{item['Ticker']}** | ถือเพื่อรอดูมูลค่า **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
-                        
-                st.markdown("---")
-                st.markdown(f"##### 💰 2. เงินสดที่ได้จากการขาย: **${freed_cash:.2f}**")
                 
-                if freed_cash > 0:
-                    st.markdown("##### 🚀 3. คำแนะนำในการเข้าซื้อหุ้นใหม่ (Buy List)")
-                    if not buys:
-                        st.info("ตลาดช่วงนี้ไม่น่าไว้ใจ แนะนำให้ **ถือเงินสด (Hold Cash)** ไว้ก่อน")
-                    else:
+                # --- Sankey Diagram Logic ---
+                sells = [item for item in sell_holds if "SELL" in item['Action']]
+                holds = [item for item in sell_holds if "SELL" not in item['Action']]
+                
+                if sells or buys:
+                    st.markdown("##### 🗺️ แผนผังการกระจายเงิน (Money Flow Mapping)")
+                    
+                    # Create nodes
+                    node_labels = [f"🔴 ขาย: {s['Ticker']}" for s in sells]
+                    node_colors = ["#ef4444"] * len(sells)
+                    
+                    cash_idx = len(node_labels)
+                    node_labels.append(f"💰 กองทุนเงินสด<br>(${freed_cash:.2f})")
+                    node_colors.append("#eab308")
+                    
+                    for b in buys:
+                        node_labels.append(f"🟢 ซื้อ: {b['Ticker']}")
+                        node_colors.append("#10b981")
+                        
+                    sources = []
+                    targets = []
+                    values = []
+                    
+                    # Sells -> Cash Pool
+                    for i, s in enumerate(sells):
+                        sources.append(i)
+                        targets.append(cash_idx)
+                        values.append(s['Amount'])
+                        
+                    # Cash Pool -> Buys
+                    for j, b in enumerate(buys):
+                        sources.append(cash_idx)
+                        targets.append(cash_idx + 1 + j)
+                        values.append(b['Amount'])
+                        
+                    # If cash is not fully allocated, create a hold cash node
+                    allocated_cash = sum(b['Amount'] for b in buys)
+                    leftover = freed_cash - allocated_cash
+                    if leftover > 0.01:
+                        hold_idx = len(node_labels)
+                        node_labels.append(f"🔒 ถือเงินสดรอ<br>(${leftover:.2f})")
+                        node_colors.append("#6b7280")
+                        sources.append(cash_idx)
+                        targets.append(hold_idx)
+                        values.append(leftover)
+
+                    # Only plot if there are flows
+                    if sources:
+                        fig = go.Figure(data=[go.Sankey(
+                            valueformat = ".2f",
+                            valuesuffix = " USD",
+                            node = dict(
+                              pad = 25,
+                              thickness = 20,
+                              line = dict(color = "rgba(255,255,255,0.1)", width = 1),
+                              label = node_labels,
+                              color = node_colors
+                            ),
+                            link = dict(
+                              source = sources,
+                              target = targets,
+                              value = values,
+                              color = "rgba(255, 255, 255, 0.15)"
+                            )
+                        )])
+                        
+                        fig.update_layout(
+                            font=dict(size=14, family="Prompt", color="white"),
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            margin=dict(t=20, l=0, r=0, b=20),
+                            height=350
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                st.markdown("---")
+                
+                # --- Text Summary ---
+                col_left, col_right = st.columns(2)
+                
+                with col_left:
+                    st.markdown("##### 🛒 1. หุ้นที่ต้องจัดการ (Action Required)")
+                    if not sells and not buys:
+                        st.info("ไม่มีแอคชั่นที่ต้องทำ พอร์ตสมดุลดีแล้ว")
+                        
+                    for item in sells:
+                        st.error(f"{item['Action']} **{item['Ticker']}** | นำเงินออกมา **${item['Amount']:.2f}** | *{item['Reason']}*")
+                        
+                    if freed_cash > 0:
+                        st.markdown(f"**💰 เงินสดที่เตรียมสับเปลี่ยน: ${freed_cash:.2f}**")
                         for item in buys:
-                            st.success(f"{item['Action']} **{item['Ticker']}** | แบ่งเงินเข้าซื้อ **${item['Amount']:.2f}** | *เหตุผล: {item['Reason']}*")
-                else:
-                    st.info("ไม่มีสัญญาณขายหุ้นเดิม จึงไม่มีเงินสดเหลือสำหรับจัดสรรใหม่ในสัปดาห์นี้")
+                            st.success(f"{item['Action']} **{item['Ticker']}** | แบ่งเงินเข้าซื้อ **${item['Amount']:.2f}** | *{item['Reason']}*")
+                
+                with col_right:
+                    st.markdown("##### 🛡️ 2. หุ้นที่ควรถือต่อ (Hold & Let Profit Run)")
+                    if not holds:
+                        st.info("ไม่มีหุ้นที่เข้าเกณฑ์ให้ถือต่อ")
+                    for item in holds:
+                        if "🟢" in item['Action']:
+                            st.success(f"{item['Action']} **{item['Ticker']}** | ถือต่อไป **${item['Amount']:.2f}** | *{item['Reason']}*")
+                        else:
+                            st.warning(f"{item['Action']} **{item['Ticker']}** | รอดูสถานการณ์ **${item['Amount']:.2f}** | *{item['Reason']}*")
+
