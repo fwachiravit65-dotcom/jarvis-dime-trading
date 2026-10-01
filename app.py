@@ -277,6 +277,10 @@ with tab1:
         fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], line=dict(color='#f59e0b', width=2), name='SMA 50'))
         fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], line=dict(color='#3b82f6', width=2), name='SMA 200'))
         
+        # Bollinger Bands
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_Upper'], line=dict(color='rgba(255, 255, 255, 0.2)', width=1), name='BB Upper', showlegend=False))
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_Lower'], line=dict(color='rgba(255, 255, 255, 0.2)', width=1), fill='tonexty', fillcolor='rgba(255, 255, 255, 0.05)', name='Bollinger Bands'))
+        
         fig.add_trace(go.Scatter(x=df.index, y=df['Resistance'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Resistance'))
         fig.add_trace(go.Scatter(x=df.index, y=df['Support'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Support'))
         
@@ -497,10 +501,17 @@ with tab4:
             st.success("บันทึกข้อมูลพอร์ตเรียบร้อยแล้ว!")
             
         st.markdown("#### 🤖 3. ประมวลผลแผนสับเปลี่ยน (AI Rotation)")
-        max_new = st.slider("กระจายเงินไปซื้อหุ้นใหม่ไม่เกินกี่ตัว?", min_value=1, max_value=5, value=3)
+        
+        col_opt1, col_opt2 = st.columns(2)
+        with col_opt1:
+            strategy = st.radio("เลือกกลยุทธ์การวิเคราะห์:", ["เกาะเทรนด์ (Trend Following)", "เล่นรอบสวิง (Swing Trade + BB)"], index=0)
+        with col_opt2:
+            max_new = st.slider("กระจายเงินไปซื้อหุ้นใหม่ไม่เกินกี่ตัว?", min_value=1, max_value=5, value=3)
+            
         if st.button("🔄 วิเคราะห์แผนการสับเปลี่ยน"):
             with st.spinner("กำลังสแกนเปรียบเทียบความแข็งแกร่ง..."):
-                screener_df = screen_all_stocks(watchlist, period)
+                strat_mode = "swing" if "Swing" in strategy else "trend"
+                screener_df = screen_all_stocks(watchlist, period, strategy=strat_mode)
                 # Pass the edited_portfolio explicitly to avoid needing to save first
                 sell_holds, buys, freed_cash = generate_rotation_plan(edited_portfolio, screener_df, max_new_picks=max_new)
                 

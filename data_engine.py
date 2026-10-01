@@ -37,6 +37,12 @@ def get_stock_data(ticker, period="1y"):
         df['Support'] = df['Low'].rolling(window=20).min()
         df['Resistance'] = df['High'].rolling(window=20).max()
         
+        # 5. Bollinger Bands
+        df['BB_Mid'] = df['Close'].rolling(window=20).mean()
+        df['BB_Std'] = df['Close'].rolling(window=20).std()
+        df['BB_Upper'] = df['BB_Mid'] + (df['BB_Std'] * 2)
+        df['BB_Lower'] = df['BB_Mid'] - (df['BB_Std'] * 2)
+        
         info = stock.info
         return df, info
     except Exception as e:
@@ -131,7 +137,7 @@ def generate_trading_plan(df):
 
     return plan
 
-def screen_all_stocks(tickers, period="1y"):
+def screen_all_stocks(tickers, period="1y", strategy="trend"):
     """Scan multiple stocks and score them based on technicals."""
     results = []
     for ticker in tickers:
@@ -144,34 +150,47 @@ def screen_all_stocks(tickers, period="1y"):
         rsi = latest['RSI']
         sma50 = latest['SMA_50']
         sma200 = latest['SMA_200']
+        bb_upper = latest.get('BB_Upper', 0)
+        bb_lower = latest.get('BB_Lower', 0)
         
-        status = "🟡 แกว่งตัวพักฐาน (Wait)"
+        status = "🟡 รอดูสถานการณ์ (Wait)"
         score = 0
         
         if pd.isna(rsi) or pd.isna(sma200):
             continue
             
-        if current_price > sma200:
-            if rsi < 45: 
-                status = "🟢 ย่อตัวน่าเก็บ (Buy the Dip)"
-                score = 10 # คะแนนเต็ม น่าเก็บที่สุด
-            elif rsi > 70:
-                status = "🔴 ขึ้นแรงไป (Overbought)"
-                score = 0
-            elif current_price > sma50:
-                status = "🟢 แนวโน้มแกร่ง (Strong Momentum)"
-                # ยิ่ง RSI ต่ำ (ห่างจาก 70) ยิ่งมีพื้นที่ให้วิ่งเยอะ = คะแนนเยอะ (ช่วงคะแนนประมาณ 5-9)
-                score = 5 + ((70 - rsi) / 10) 
+        bb_triggered = False
+        if strategy == "swing" and pd.notna(bb_upper):
+            if current_price >= bb_upper:
+                status = "🔴 ชนขอบบน BB (Overbought/Take Profit)"
+                score = -1 
+                bb_triggered = True
+            elif current_price <= bb_lower and rsi < 40:
+                status = "🟢 ชนขอบล่าง BB (Oversold Bounce)"
+                score = 10 
+                bb_triggered = True
+        
+        if not bb_triggered:
+            if current_price > sma200:
+                if rsi < 45: 
+                    status = "🟢 น่าสนใจซื้อตอนย่อ (Buy the Dip)"
+                    score = 9 
+                elif rsi > 70:
+                    status = "🔴 ซื้อมากเกินไป (Overbought)"
+                    score = 0
+                elif current_price > sma50:
+                    status = "🔥 โมเมนตัมกำลังแรง (Strong Momentum)"
+                    score = 5 + ((70 - rsi) / 10) 
+                else:
+                    status = "🟡 รอดูสถานการณ์ (Wait & See)"
+                    score = 3
             else:
-                status = "🟡 พักตัวในขาขึ้น (Wait & See)"
-                score = 3
-        else:
-            if rsi < 30:
-                status = "🟡 ลงลึก (Oversold - เสี่ยงสวนเทรนด์)"
-                score = 1
-            else:
-                status = "🔴 ขาลง (Avoid/Wait)"
-                score = -2
+                if rsi < 30:
+                    status = "🟡 เสี่ยงเด้งกลับตัว (Oversold - High Risk)"
+                    score = 1
+                else:
+                    status = "🔴 ขาลงชัดเจน (Downtrend)"
+                    score = -2
                 
         results.append({
             "Ticker": ticker,
