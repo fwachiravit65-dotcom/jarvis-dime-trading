@@ -95,7 +95,7 @@ header {background: transparent !important;}
 
 [data-testid="stMetricLabel"] {
     font-size: 15px !important;
-    color: #94A3B8 !important;
+    color: #E2E8F0 !important;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600 !important;
@@ -135,10 +135,12 @@ h1, h2, h3 {
     letter-spacing: -0.5px;
 }
 h3 {
-    background: -webkit-linear-gradient(45deg, #F8FAFC, #94A3B8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #FFFFFF !important;
     margin-bottom: 1.5rem !important;
+}
+/* Ensure captions and small text are bright enough */
+small, .st-emotion-cache-1qg05tj, .st-emotion-cache-16idsys p {
+    color: #E2E8F0 !important;
 }
 
 /* Mobile Adjustments (Phones) */
