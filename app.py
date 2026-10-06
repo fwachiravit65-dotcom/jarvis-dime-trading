@@ -25,11 +25,19 @@ st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="🤖"
 
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
 
 /* GLOBAL RESETS & FONTS */
-p, h1, h2, h3, h4, h5, h6, label, li, a {
-    font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+html, body, p, h1, h2, h3, h4, h5, h6, label, li, a, span, div, [class*="st-"] {
+    font-family: 'Noto Sans Thai', sans-serif;
+    color: #F8FAFC; /* Force white text for mobile */
+}
+/* Specifically target dataframe headers and metric values */
+[data-testid="stMetricValue"] {
+    font-family: 'Noto Sans Thai', sans-serif !important;
+    font-size: 36px !important;
+    font-weight: 700 !important;
+    color: #00FFA3 !important;
 }
 
 /* APP BACKGROUND (MESH GRADIENT) */
@@ -478,7 +486,7 @@ elif menu == "🔄 Portfolio Rotation":
                         )])
                         
                         fig.update_layout(
-                            font=dict(size=14, family="Inter, Noto Sans Thai", color="white"),
+                            font=dict(size=14, family="Noto Sans Thai", color="white"),
                             paper_bgcolor="rgba(0,0,0,0)",
                             plot_bgcolor="rgba(0,0,0,0)",
                             margin=dict(t=10, l=0, r=0, b=10),
