@@ -213,7 +213,7 @@ h3 {
 """
 
 st.markdown(custom_css, unsafe_allow_html=True)
-st.markdown("<h1 class='gradient-text'>JARVIS TRADING</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='gradient-text'>FORECAST TRADING</h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-text'>AI QUANTITATIVE ANALYSIS & PORTFOLIO ROTATION</p>", unsafe_allow_html=True)
 
 # ----------------- SIDEBAR MENU -----------------
