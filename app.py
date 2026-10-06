@@ -28,11 +28,8 @@ custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
 
 /* GLOBAL RESETS & FONTS */
-html, body, [class*="st-"] {
+p, h1, h2, h3, h4, h5, h6, label, li, a {
     font-family: 'Prompt', sans-serif;
-}
-.stIcon, .material-symbols-rounded {
-    font-family: 'Material Symbols Rounded' !important;
 }
 
 /* APP BACKGROUND (MESH GRADIENT) */
@@ -268,7 +265,7 @@ if menu == "🌐 Market Overview":
             st.markdown("#### 📊 ตารางสถานะความแข็งแกร่ง (Live Heatmap)")
             styled_all = screener_df[['Ticker', 'Price', 'RSI', 'Score', 'Status']].style.format(
                 {'Price': '${:.2f}', 'RSI': '{:.1f}', 'Score': '{:.1f}'}
-            ).background_gradient(subset=['Score'], cmap='RdYlGn', vmin=-2, vmax=10)
+            )
             st.dataframe(styled_all, use_container_width=True)
 
 # ----------------- PAGE 2: AI CHART & STRATEGY -----------------
