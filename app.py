@@ -31,7 +31,7 @@ custom_css = """
 html, body {
     color: #F8FAFC !important; /* Force white text globally */
 }
-p, h1, h2, h3, h4, h5, h6, label, li, a {
+p, h1, h2, h3, h4, h5, h6, label, li, a, span, div, button, input, textarea, select {
     font-family: 'Noto Sans Thai', sans-serif;
 }
 /* Specifically target dataframe headers and metric values */
@@ -101,7 +101,7 @@ header {background: transparent !important;}
     font-weight: 600 !important;
 }
 [data-testid="stMetricValue"] {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Noto Sans Thai', sans-serif !important;
     font-size: 36px !important;
     font-weight: 800 !important;
     background: -webkit-linear-gradient(45deg, #FFF, #00FFA3);
