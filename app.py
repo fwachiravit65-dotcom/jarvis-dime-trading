@@ -25,11 +25,11 @@ st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="🤖"
 
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
 
 /* GLOBAL RESETS & FONTS */
 p, h1, h2, h3, h4, h5, h6, label, li, a {
-    font-family: 'Prompt', sans-serif;
+    font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 /* APP BACKGROUND (MESH GRADIENT) */
@@ -91,6 +91,7 @@ header {background: transparent !important;}
     font-weight: 600 !important;
 }
 [data-testid="stMetricValue"] {
+    font-family: 'Inter', sans-serif !important;
     font-size: 36px !important;
     font-weight: 800 !important;
     background: -webkit-linear-gradient(45deg, #FFF, #00FFA3);
@@ -477,7 +478,7 @@ elif menu == "🔄 Portfolio Rotation":
                         )])
                         
                         fig.update_layout(
-                            font=dict(size=14, family="Prompt", color="white"),
+                            font=dict(size=14, family="Inter, Noto Sans Thai", color="white"),
                             paper_bgcolor="rgba(0,0,0,0)",
                             plot_bgcolor="rgba(0,0,0,0)",
                             margin=dict(t=10, l=0, r=0, b=10),
