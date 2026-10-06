@@ -29,12 +29,11 @@ st.set_page_config(page_title="Jarvis Terminal", layout="wide", page_icon="⚡",
 
 # ... (CSS stays the same, I'll search for the header to insert the banner)
 
-
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
 
-/* Apply font but protect material icons */
+/* GLOBAL RESETS & FONTS */
 html, body, [class*="st-"] {
     font-family: 'Prompt', sans-serif;
 }
@@ -42,181 +41,188 @@ html, body, [class*="st-"] {
     font-family: 'Material Symbols Rounded' !important;
 }
 
-/* Remove top padding for a full-screen app feel */
+/* APP BACKGROUND (MESH GRADIENT) */
+.stApp {
+    background: radial-gradient(circle at 15% 50%, rgba(0, 255, 163, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.05), transparent 25%);
+    background-color: #0F172A;
+}
+
+/* LAYOUT & RESPONSIVE PADDING */
 .block-container {
     padding-top: 1.5rem !important;
-    padding-bottom: 0rem !important;
-    max-width: 95% !important;
-}
-
-/* Hide Streamlit elements */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-
-/* Modern Glassmorphism Metric Cards */
-[data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 15px 20px;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-}
-[data-testid="stMetric"]:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.15);
-}
-
-/* Make metric labels softer */
-[data-testid="stMetricLabel"] {
-    font-size: 14px !important;
-    color: #a3a8b8 !important;
-    font-weight: 500 !important;
-}
-/* Make metric values massive */
-[data-testid="stMetricValue"] {
-    font-size: 30px !important;
-    font-weight: 700 !important;
-}
-
-/* --- NEW UX/UI UPGRADES --- */
-
-/* 1. App Fade-in Animation */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.block-container {
+    padding-bottom: 2rem !important;
+    max-width: 98% !important;
     animation: fadeIn 0.8s ease-out;
 }
+#MainMenu, footer, header {visibility: hidden;}
 
-/* 2. Glassmorphism Tabs */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- INFOGRAPHIC METRIC CARDS --- */
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, rgba(30,41,59,0.7) 0%, rgba(15,23,42,0.9) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+[data-testid="stMetric"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #00FFA3, #00B8FF);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+[data-testid="stMetric"]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px -10px rgba(0,255,163,0.15);
+    border-color: rgba(0,255,163,0.3);
+}
+[data-testid="stMetric"]:hover::before { opacity: 1; }
+
+[data-testid="stMetricLabel"] {
+    font-size: 15px !important;
+    color: #94A3B8 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600 !important;
+}
+[data-testid="stMetricValue"] {
+    font-size: 36px !important;
+    font-weight: 800 !important;
+    background: -webkit-linear-gradient(45deg, #FFF, #00FFA3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0px 4px 20px rgba(0,255,163,0.2);
+}
+
+/* --- GLASS TABS --- */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 12px;
-    background-color: rgba(255,255,255,0.03);
-    padding: 10px 15px;
+    gap: 8px;
+    background: rgba(30,41,59,0.5);
+    backdrop-filter: blur(10px);
+    padding: 8px;
     border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 .stTabs [data-baseweb="tab"] {
-    background-color: transparent !important;
-    border-radius: 10px !important;
-    padding: 10px 20px !important;
+    background: transparent !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
     border: none !important;
-    color: #a3a8b8 !important;
+    color: #64748B !important;
+    font-weight: 600;
+    font-size: 16px;
     transition: all 0.3s ease !important;
 }
 .stTabs [data-baseweb="tab"]:hover {
-    background-color: rgba(255,255,255,0.05) !important;
-    color: white !important;
+    color: #F8FAFC !important;
+    background: rgba(255,255,255,0.05) !important;
 }
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(90deg, rgba(255,75,75,0.2) 0%, rgba(255,42,42,0.1) 100%) !important;
-    color: white !important;
-    border: 1px solid rgba(255,75,75,0.4) !important;
-    box-shadow: 0 4px 12px rgba(255,75,75,0.15) !important;
+    background: linear-gradient(135deg, #00FFA3 0%, #00B8FF 100%) !important;
+    color: #0F172A !important;
+    box-shadow: 0 4px 15px rgba(0,255,163,0.3) !important;
 }
 
-/* 3. Style Headers */
-h1, h2, h3 {
-    background: -webkit-linear-gradient(45deg, #ffffff, #a3a8b8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700 !important;
-}
-
-
-/* Modern Glowing Buttons */
+/* --- MODERN BUTTONS --- */
 .stButton > button {
-    background: linear-gradient(90deg, #ff4b4b 0%, #ff2a2a 100%) !important;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
     color: white !important;
     border-radius: 12px !important;
-    border: none !important;
-    padding: 10px 24px !important;
-    font-weight: 600 !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    padding: 12px 24px !important;
+    font-weight: 700 !important;
     letter-spacing: 0.5px !important;
-    box-shadow: 0 4px 15px rgba(255, 75, 75, 0.3) !important;
-    transition: all 0.3s ease !important;
-    width: 100%;
+    box-shadow: 0 4px 15px rgba(37,99,235,0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-transform: uppercase;
 }
 .stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6) !important;
-    background: linear-gradient(90deg, #ff2a2a 0%, #ff0000 100%) !important;
+    transform: translateY(-3px) scale(1.01) !important;
+    box-shadow: 0 8px 25px rgba(37,99,235,0.5) !important;
+    background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%) !important;
 }
 
-/* Sleek Tabs */
-.stTabs [data-baseweb="tab-list"] {
-    background-color: rgba(255,255,255,0.03);
-    border-radius: 12px;
-    padding: 6px;
-    gap: 10px;
-    margin-bottom: 10px;
+/* --- RESPONSIVE TYPOGRAPHY & MEDIA QUERIES --- */
+h1, h2, h3 {
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
 }
-.stTabs [data-baseweb="tab"] {
-    border-radius: 8px;
-    padding: 12px 24px;
-    border: none !important;
-    background-color: transparent;
-    transition: background-color 0.2s;
-    font-size: 16px;
-    font-weight: 500;
-}
-.stTabs [aria-selected="true"] {
-    background-color: rgba(255,255,255,0.12) !important;
-    color: white !important;
-}
-
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background-color: rgba(15, 17, 22, 0.98);
-    border-right: 1px solid rgba(255,255,255,0.05);
-}
-
-/* Headers */
-h1 {
-    font-weight: 700 !important;
-    background: -webkit-linear-gradient(45deg, #fff, #a3a8b8);
+h3 {
+    background: -webkit-linear-gradient(45deg, #F8FAFC, #94A3B8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem !important;
 }
 
-/* 📱 Mobile Responsiveness */
+/* Mobile Adjustments (Phones) */
 @media (max-width: 768px) {
-    .block-container {
-        padding-top: 2rem !important;
-        max-width: 100% !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-    
-    /* ย่อขนาดตัวอักษรลงในมือถือ */
-    [data-testid="stMetricValue"] {
-        font-size: 24px !important;
-    }
-    h1 {
-        font-size: 26px !important;
-    }
-    
-    /* ทำให้แท็บเลื่อนซ้ายขวาได้ ไม่เบียดกัน */
-    .stTabs [data-baseweb="tab-list"] {
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 5px;
-        gap: 5px;
-    }
+    .block-container { padding-top: 1rem !important; }
+    [data-testid="stMetricValue"] { font-size: 28px !important; }
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 12px;
+        padding: 8px 12px !important;
         font-size: 14px;
+        width: 100%;
+        text-align: center;
     }
+    .stTabs [data-baseweb="tab-list"] {
+        flex-direction: column;
+    }
+}
+
+/* Tablet Adjustments (iPads) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    [data-testid="stMetricValue"] { font-size: 32px !important; }
+    .stTabs [data-baseweb="tab"] { padding: 10px 15px !important; }
+}
+
+/* --- DATAFRAME UPGRADES --- */
+[data-testid="stDataFrame"] {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 30px -15px rgba(0,0,0,0.5);
+}
+
+/* Custom Infographic Title */
+.gradient-text {
+    background: linear-gradient(90deg, #00FFA3, #00B8FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 3em;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
+}
+.sub-text {
+    text-align: center;
+    color: #94A3B8;
+    font-size: 1.2em;
+    font-weight: 400;
+    margin-top: 5px;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
 }
 </style>
 """
+
 st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown("<h1 class='gradient-text'>JARVIS TRADING</h1>", unsafe_allow_html=True)
+st.markdown("<p class='sub-text'>AI QUANTITATIVE ANALYSIS & PORTFOLIO ROTATION</p>", unsafe_allow_html=True)
+
 
 watchlist = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "RGTI", "RKLB", "SHOP", "JEPQ", "AMD", "TSM"]
 
