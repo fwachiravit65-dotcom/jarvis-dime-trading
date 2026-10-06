@@ -82,6 +82,54 @@ footer {visibility: hidden;}
     font-weight: 700 !important;
 }
 
+/* --- NEW UX/UI UPGRADES --- */
+
+/* 1. App Fade-in Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.block-container {
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* 2. Glassmorphism Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 12px;
+    background-color: rgba(255,255,255,0.03);
+    padding: 10px 15px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    border: none !important;
+    color: #a3a8b8 !important;
+    transition: all 0.3s ease !important;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: rgba(255,255,255,0.05) !important;
+    color: white !important;
+}
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(90deg, rgba(255,75,75,0.2) 0%, rgba(255,42,42,0.1) 100%) !important;
+    color: white !important;
+    border: 1px solid rgba(255,75,75,0.4) !important;
+    box-shadow: 0 4px 12px rgba(255,75,75,0.15) !important;
+}
+
+/* 3. Style Headers */
+h1, h2, h3 {
+    background: -webkit-linear-gradient(45deg, #ffffff, #a3a8b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700 !important;
+}
+
+
 /* Modern Glowing Buttons */
 .stButton > button {
     background: linear-gradient(90deg, #ff4b4b 0%, #ff2a2a 100%) !important;
@@ -405,11 +453,13 @@ with tab2:
                 st.markdown("---")
                 st.markdown("#### 🗑️ โผหุ้นที่ควรพิจารณาขาย / หลีกเลี่ยง (Sell & Avoid List)")
                 st.warning("⚠️ หุ้นกลุ่มนี้กำลังอยู่ในโซนอันตราย (Overbought สุดๆ หรือกราฟพังเป็นขาลง) หากมีของอยู่ควรพิจารณาล็อกกำไร/ตัดขาดทุน หรือห้ามเข้าซื้อเด็ดขาด!")
-                st.dataframe(sell_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
+                styled_sell = sell_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}).background_gradient(subset=['RSI'], cmap='Reds', vmin=30, vmax=80)
+                st.dataframe(styled_sell, use_container_width=True)
 
             st.markdown("---")
             st.markdown("#### 📊 อัปเดตสถานะหุ้นทั้งหมด (Live Market Status)")
-            st.dataframe(screener_df[['Ticker', 'Price', 'RSI', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}'}), use_container_width=True)
+            styled_all = screener_df[['Ticker', 'Price', 'RSI', 'Score', 'Status']].style.format({'Price': '${:.2f}', 'RSI': '{:.1f}', 'Score': '{:.1f}'}).background_gradient(subset=['Score'], cmap='RdYlGn', vmin=-2, vmax=10)
+            st.dataframe(styled_all, use_container_width=True)
 
 
 # --- TAB 3: Daily News & Alerts ---
