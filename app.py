@@ -224,7 +224,7 @@ with st.sidebar:
     ])
     st.markdown("---")
     st.markdown("### ⚙️ SETTINGS")
-    watchlist_input = st.text_area("รายการหุ้น (Watchlist)", value="AAPL, TSLA, NVDA, MSFT, AMZN, META, GOOGL, AMD, INTC, NFLX")
+    watchlist_input = st.text_area("รายการหุ้น (Watchlist)", value="AAPL, TSLA, NVDA, MSFT, AMZN, META, GOOGL, AMD, SHOP, NFLX")
     watchlist = [t.strip().upper() for t in watchlist_input.split(",") if t.strip()]
     period = st.selectbox("กรอบเวลา (Timeframe)", ["3mo", "6mo", "1y", "2y", "5y"], index=2)
 
