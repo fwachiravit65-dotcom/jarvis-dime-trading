@@ -303,9 +303,9 @@ elif menu == "📈 AI Chart & Strategy":
                     fig.add_trace(go.Scatter(x=df.index, y=df['Resistance'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Resistance'))
                     fig.add_trace(go.Scatter(x=df.index, y=df['Support'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Support'))
                     
-                    if "error" not in plan and "status" in plan:
+                    if "error" not in plan and "action" in plan:
                         latest_date = df.index[-1]
-                        if plan["status"] in ["BUY_DIP", "BUY_BREAK"]:
+                        if "BUY" in plan["action"]:
                             fig.add_annotation(x=latest_date, y=plan['buy_target'], text="🟢 BUY", showarrow=True, arrowhead=1, arrowcolor="#10b981")
                             fig.add_annotation(x=latest_date, y=plan['sell_target'], text="🎯 TARGET", showarrow=True, arrowhead=1, arrowcolor="#3b82f6")
                         
@@ -329,17 +329,16 @@ elif menu == "📈 AI Chart & Strategy":
                     st.markdown("---")
                     
                     if "error" in plan:
-                        st.warning(f"❌ {plan['error']}")
+                        st.warning(f"❌ {plan.get('error', 'Error')}")
                     else:
                         st.markdown("#### 🤖 AI Action")
-                        if plan["status"] == "WAIT_DIP":
-                            st.info("🟡 **WAIT:** รอราคาย่อตัวลงมาที่แนวรับ")
-                        elif plan["status"] == "BUY_DIP":
-                            st.success("🟢 **BUY THE DIP:** ราคาน่าช้อนซื้อมาก")
-                        elif plan["status"] == "WAIT_BREAK":
-                            st.info("🟡 **WAIT:** รอดูว่าจะทะลุแนวต้านได้ไหม")
-                        elif plan["status"] == "BUY_BREAK":
-                            st.success("🔥 **BUY BREAKOUT:** โมเมนตัมกำลังพุ่งทะยาน")
+                        action_str = plan.get('action', '')
+                        if 'BUY' in action_str:
+                            st.success(f"**{action_str}**\n\n*{plan.get('reason', '')}*")
+                        elif 'SELL' in action_str:
+                            st.error(f"**{action_str}**\n\n*{plan.get('reason', '')}*")
+                        else:
+                            st.info(f"**{action_str}**\n\n*{plan.get('reason', '')}*")
                             
                         if "buy_target" in plan:
                             st.markdown(f"**เป้าเข้าซื้อ:** ${plan['buy_target']:.2f}")
