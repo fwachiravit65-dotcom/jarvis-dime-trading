@@ -28,9 +28,11 @@ custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
 
 /* GLOBAL RESETS & FONTS */
-html, body, p, h1, h2, h3, h4, h5, h6, label, li, a, span, div, [class*="st-"] {
+html, body {
+    color: #F8FAFC !important; /* Force white text globally */
+}
+p, h1, h2, h3, h4, h5, h6, label, li, a {
     font-family: 'Noto Sans Thai', sans-serif;
-    color: #F8FAFC; /* Force white text for mobile */
 }
 /* Specifically target dataframe headers and metric values */
 [data-testid="stMetricValue"] {
