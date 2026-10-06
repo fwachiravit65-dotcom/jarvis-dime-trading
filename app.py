@@ -341,18 +341,26 @@ elif menu == "📈 AI Chart & Strategy":
                             st.info(f"**{action_str}**\n\n*{plan.get('reason', '')}*")
                             
                         if "buy_target" in plan:
-                            st.markdown(f"**เป้าเข้าซื้อ:** ${plan['buy_target']:.2f}")
-                            st.markdown(f"**เป้าขายทำกำไร:** ${plan['sell_target']:.2f}")
-                            st.markdown(f"**จุดตัดขาดทุน:** ${plan['cut_loss']:.2f}")
+                            b_target = plan.get('buy_target')
+                            s_target = plan.get('sell_target')
+                            c_loss = plan.get('cut_loss')
                             
-                            risk = plan['buy_target'] - plan['cut_loss']
-                            reward = plan['sell_target'] - plan['buy_target']
-                            if risk > 0 and reward > 0:
-                                rr_ratio = reward / risk
-                                if rr_ratio >= 2:
-                                    st.caption(f"✅ ความคุ้มค่า: ดีมาก (R/R 1:{rr_ratio:.2f})")
-                                else:
-                                    st.caption(f"⚠️ ความคุ้มค่า: ปานกลาง (R/R 1:{rr_ratio:.2f})")
+                            if b_target is not None:
+                                st.markdown(f"**เป้าเข้าซื้อ (Buy Target):** ${b_target:.2f}")
+                            if s_target is not None:
+                                st.markdown(f"**เป้าขายทำกำไร (Take Profit):** ${s_target:.2f}")
+                            if c_loss is not None:
+                                st.markdown(f"**จุดตัดขาดทุน (Cut Loss):** ${c_loss:.2f}")
+                            
+                            if b_target is not None and c_loss is not None and s_target is not None:
+                                risk = b_target - c_loss
+                                reward = s_target - b_target
+                                if risk > 0 and reward > 0:
+                                    rr_ratio = reward / risk
+                                    if rr_ratio >= 2:
+                                        st.caption(f"✅ ความคุ้มค่า: ดีมาก (R/R 1:{rr_ratio:.2f})")
+                                    else:
+                                        st.caption(f"⚠️ ความคุ้มค่า: ปานกลาง (R/R 1:{rr_ratio:.2f})")
 
 # ----------------- PAGE 3: PORTFOLIO ROTATION -----------------
 elif menu == "🔄 Portfolio Rotation":
